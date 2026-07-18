@@ -1,8 +1,8 @@
 import Nav from "@/components/Nav";
 
 export const metadata = {
-  title: "Phonk Radar",
-  description: "Phonk trend intelligence dashboard",
+  title: "Chroma",
+  description: "Genre-agnostic trend intelligence platform",
 };
 
 export default function RootLayout({

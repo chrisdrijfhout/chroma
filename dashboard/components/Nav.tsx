@@ -12,7 +12,7 @@ export default function Nav() {
       background: "#0a0a0a", position: "sticky", top: 0, zIndex: 10,
     }}>
       <div style={{ fontWeight: 700, marginRight: 24, color: "#fff", letterSpacing: 0.5 }}>
-        PHONK RADAR
+        CHROMA
       </div>
       {links.map((l) => (
         <a key={l.href} href={l.href} style={{
