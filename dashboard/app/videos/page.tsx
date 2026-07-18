@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 
 export default async function VideosPage() {
-  const { data: videos } = await supabase
+  const { data: videos, error } = await supabase
     .from("videos")
     .select(`
       id,
@@ -17,6 +17,13 @@ export default async function VideosPage() {
   return (
     <div style={{ padding: 24, fontFamily: "monospace", background: "#0a0a0a", color: "#eee", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 22, marginBottom: 16 }}>Phonk Radar — Videos</h1>
+
+      {error && (
+        <pre style={{ color: "#f66", background: "#200", padding: 12, borderRadius: 6, whiteSpace: "pre-wrap" }}>
+          SUPABASE ERROR: {JSON.stringify(error, null, 2)}
+        </pre>
+      )}
+
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ textAlign: "left", borderBottom: "1px solid #333" }}>
@@ -46,7 +53,7 @@ export default async function VideosPage() {
           })}
         </tbody>
       </table>
-      {(!videos || videos.length === 0) && (
+      {(!videos || videos.length === 0) && !error && (
         <p style={{ marginTop: 16, color: "#888" }}>No videos yet — insert some data in Supabase to see it here.</p>
       )}
     </div>
