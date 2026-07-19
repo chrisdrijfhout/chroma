@@ -25,6 +25,12 @@ def upsert_sound(item):
     return res.data[0]["id"]
 
 def upsert_video(item, creator_id, sound_id):
+    # covers/thumbnail — TikTok scraper responses typically include this
+    thumbnail = (
+        item.get("covers", {}).get("default")
+        or item.get("videoMeta", {}).get("coverUrl")
+        or item.get("coverUrl")
+    )
     row = {
         "tiktok_video_id": item["id"],
         "video_url": item["webVideoUrl"],
@@ -32,9 +38,12 @@ def upsert_video(item, creator_id, sound_id):
         "sound_id": sound_id,
         "caption": item.get("text"),
         "published_at": item.get("createTimeISO"),
+        "thumbnail_url": thumbnail,
+        "like_count_snapshot": item.get("diggCount", 0),
     }
     res = sb.table("videos").upsert(row, on_conflict="tiktok_video_id").execute()
     video_id = res.data[0]["id"]
+
     sb.table("video_metrics").insert({
         "video_id": video_id,
         "view_count": item.get("playCount", 0),
