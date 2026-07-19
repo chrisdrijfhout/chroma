@@ -1,8 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 
 export default async function VideosPage() {
-  // Find the most recent scrape batch instead of a fragile rolling 24h window —
-  // this stays populated regardless of what time of day the page is checked.
   const { data: latest } = await supabase
     .from("videos")
     .select("first_collected_at")
@@ -15,7 +13,7 @@ export default async function VideosPage() {
 
   if (latest?.first_collected_at) {
     const cutoff = new Date(
-      new Date(latest.first_collected_at).getTime() - 60 * 60 * 1000 // 1hr buffer around the latest run
+      new Date(latest.first_collected_at).getTime() - 60 * 60 * 1000
     ).toISOString();
 
     const result = await supabase
@@ -59,7 +57,12 @@ export default async function VideosPage() {
           >
             <div style={{ position: "relative", aspectRatio: "9/16", background: "#000" }}>
               {v.thumbnail_url ? (
-                <img src={v.thumbnail_url} alt={v.caption ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img
+                  src={v.thumbnail_url}
+                  alt={v.caption ?? ""}
+                  referrerPolicy="no-referrer"
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
               ) : (
                 <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#444" }}>
                   no thumbnail
