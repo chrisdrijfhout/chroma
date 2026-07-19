@@ -1,18 +1,22 @@
 import os, json
 from apify_client import ApifyClient
 
-HASHTAGS = ["phonk", "phonkmusic", "driftphonk", "brazilianphonk",
-            "aggressivephonk", "housephonk", "phonkedit", "drift", "caredit"]
+TASK_ID = "5pgv9BNd5V82yozfv"
 
 def collect():
     client = ApifyClient(os.environ["APIFY_API_TOKEN"])
-    run_input = {
-        "hashtags": HASHTAGS,
-        "resultsPerPage": 100,
-        "shouldDownloadVideos": False,
-    }
-    run = client.actor("clockworks/tiktok-scraper").call(run_input=run_input)
-    items = list(client.dataset(run["defaultDatasetId"]).iterate_items())
+    run = client.task(TASK_ID).call()
+
+    # Handle both possible return shapes across apify-client versions:
+    # some return a dict, some return an object with attributes.
+    dataset_id = (
+        run.get("defaultDatasetId") if isinstance(run, dict)
+        else getattr(run, "default_dataset_id", None)
+    )
+    if not dataset_id:
+        raise RuntimeError(f"Could not find dataset id on run result: {run!r}")
+
+    items = list(client.dataset(dataset_id).iterate_items())
     return items
 
 if __name__ == "__main__":
