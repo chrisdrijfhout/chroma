@@ -1,23 +1,44 @@
 import { supabase } from "@/lib/supabaseClient";
 
 export default async function VideosPage() {
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-  const { data: videos, error } = await supabase
+  // Find the most recent scrape batch instead of a fragile rolling 24h window —
+  // this stays populated regardless of what time of day the page is checked.
+  const { data: latest } = await supabase
     .from("videos")
-    .select(`
-      id, caption, video_url, published_at, thumbnail_url, like_count_snapshot,
-      creators ( tiktok_username ),
-      sounds ( sound_name )
-    `)
-    .gte("published_at", twentyFourHoursAgo)
-    .order("like_count_snapshot", { ascending: false })
-    .limit(10);
+    .select("first_collected_at")
+    .order("first_collected_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  let videos: any[] = [];
+  let error: any = null;
+
+  if (latest?.first_collected_at) {
+    const cutoff = new Date(
+      new Date(latest.first_collected_at).getTime() - 60 * 60 * 1000 // 1hr buffer around the latest run
+    ).toISOString();
+
+    const result = await supabase
+      .from("videos")
+      .select(`
+        id, caption, video_url, published_at, thumbnail_url, like_count_snapshot,
+        creators ( tiktok_username ),
+        sounds ( sound_name )
+      `)
+      .gte("first_collected_at", cutoff)
+      .order("like_count_snapshot", { ascending: false })
+      .limit(10);
+
+    videos = result.data ?? [];
+    error = result.error;
+  }
 
   return (
     <div style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 20, marginBottom: 4, color: "#fff" }}>Top 10 — Last 24 Hours</h1>
-      <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Ranked by likes, published in the last 24h</p>
+      <h1 style={{ fontSize: 20, marginBottom: 4, color: "#fff" }}>Top 10 — Latest Scrape</h1>
+      <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>
+        Ranked by likes, from the most recent pipeline run
+      </p>
 
       {error && (
         <pre style={{ color: "#f66", background: "#200", padding: 12, borderRadius: 6, whiteSpace: "pre-wrap" }}>
@@ -26,7 +47,7 @@ export default async function VideosPage() {
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
-        {videos?.map((v: any, i: number) => (
+        {videos.map((v: any, i: number) => (
           <a
             key={v.id}
             href={v.video_url}
@@ -66,8 +87,8 @@ export default async function VideosPage() {
         ))}
       </div>
 
-      {(!videos || videos.length === 0) && !error && (
-        <p style={{ marginTop: 16, color: "#666" }}>Nothing published in the last 24 hours yet.</p>
+      {videos.length === 0 && !error && (
+        <p style={{ marginTop: 16, color: "#666" }}>No data yet — run the pipeline first.</p>
       )}
     </div>
   );
