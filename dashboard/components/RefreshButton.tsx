@@ -1,10 +1,28 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-export default function RefreshButton() {
+const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null }) {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [remaining, setRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!lastRunAt) return;
+    const tick = () => {
+      const elapsed = Date.now() - new Date(lastRunAt).getTime();
+      const left = COOLDOWN_MS - elapsed;
+      setRemaining(left > 0 ? left : 0);
+    };
+    tick();
+    const interval = setInterval(tick, 60_000); // update every minute
+    return () => clearInterval(interval);
+  }, [lastRunAt]);
+
+  const onCooldown = remaining !== null && remaining > 0;
 
   async function handleClick() {
+    if (onCooldown) return;
     setState("loading");
     try {
       const res = await fetch("/api/refresh", { method: "POST" });
@@ -17,20 +35,31 @@ export default function RefreshButton() {
     }
   }
 
+  function formatRemaining(ms: number) {
+    const hrs = Math.floor(ms / (60 * 60 * 1000));
+    const mins = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
+    return `${hrs}h ${mins}m`;
+  }
+
   const label =
     state === "loading" ? "Starting..." :
     state === "done" ? "Started ✓" :
     state === "error" ? "Failed — try again" :
+    onCooldown ? `Next refresh in ${formatRemaining(remaining!)}` :
     "Refresh Data";
 
   return (
     <button
       onClick={handleClick}
-      disabled={state === "loading"}
+      disabled={state === "loading" || onCooldown}
+      title={onCooldown ? "Scraping is limited to once every 24 hours to control cost" : undefined}
       style={{
-        fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: "#0a0a0a",
-        background: state === "error" ? "#f87171" : "#5ac8fa",
-        border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer",
+        fontFamily: "inherit", fontSize: 12, fontWeight: 600,
+        color: onCooldown ? "#54585f" : "#0a0a0a",
+        background: onCooldown ? "#1a1c1f" : state === "error" ? "#f87171" : "#5ac8fa",
+        border: onCooldown ? "1px solid #2a2d31" : "none",
+        borderRadius: 6, padding: "7px 14px",
+        cursor: onCooldown || state === "loading" ? "not-allowed" : "pointer",
         opacity: state === "loading" ? 0.7 : 1,
       }}
     >

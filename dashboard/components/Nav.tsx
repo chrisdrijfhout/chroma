@@ -1,5 +1,5 @@
-export const dynamic = 'force-dynamic';
 import RefreshButton from "./RefreshButton";
+import { supabase } from "@/lib/supabaseClient";
 
 const links = [
   { href: "/videos", label: "Trending Videos" },
@@ -10,7 +10,14 @@ const links = [
 
 const CLIENT_NAME = "Tribal Music Group";
 
-export default function Nav() {
+export default async function Nav() {
+  const { data: latest } = await supabase
+    .from("videos")
+    .select("first_collected_at")
+    .order("first_collected_at", { ascending: false })
+    .limit(1)
+    .single();
+
   return (
     <nav style={{
       display: "flex", alignItems: "center", gap: 4, padding: "14px 24px",
@@ -40,7 +47,7 @@ export default function Nav() {
         </a>
       ))}
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
-        <RefreshButton />
+        <RefreshButton lastRunAt={latest?.first_collected_at ?? null} />
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#54585f" }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
           Live
