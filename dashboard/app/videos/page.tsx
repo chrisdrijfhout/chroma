@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { supabase } from "@/lib/supabaseClient";
 import SafeImage from "@/components/SafeImage";
 
