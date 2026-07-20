@@ -1,11 +1,11 @@
-import os, json
+import os, json, hashlib
+import requests
 from supabase import create_client
 
 sb = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
+BUCKET = "thumbnails"
 
 def get(d, *keys, default=None):
-    """Try multiple possible key names, since different Apify actors/tasks
-    can return slightly different field naming for the same data."""
     for k in keys:
         if isinstance(d, dict) and k in d and d[k] is not None:
             return d[k]
@@ -35,15 +35,38 @@ def upsert_sound(item):
     res = sb.table("sounds").upsert(row, on_conflict="tiktok_sound_id").execute()
     return res.data[0]["id"]
 
+def mirror_thumbnail(tiktok_thumbnail_url, video_id_raw):
+    """Download the thumbnail server-side (bypasses browser hotlink protection)
+    and re-host it in Supabase Storage. Returns our own public URL, or None
+    if anything goes wrong — never lets a bad thumbnail crash the whole run."""
+    if not tiktok_thumbnail_url:
+        return None
+    try:
+        resp = requests.get(tiktok_thumbnail_url, timeout=10, headers={
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://www.tiktok.com/",
+        })
+        resp.raise_for_status()
+        filename = f"{hashlib.md5(str(video_id_raw).encode()).hexdigest()}.jpg"
+        sb.storage.from_(BUCKET).upload(
+            filename, resp.content,
+            {"content-type": "image/jpeg", "upsert": "true"},
+        )
+        return sb.storage.from_(BUCKET).get_public_url(filename)
+    except Exception as e:
+        print(f"  (thumbnail mirror skipped for {video_id_raw}: {e})")
+        return None
+
 def upsert_video(item, creator_id, sound_id):
-    thumbnail = get(item, "covers", default={})
-    if isinstance(thumbnail, dict):
-        thumbnail = get(thumbnail, "default", "origin", "dynamic")
-    if not thumbnail:
+    thumb_raw = get(item, "covers", default={})
+    if isinstance(thumb_raw, dict):
+        thumb_raw = get(thumb_raw, "default", "origin", "dynamic")
+    if not thumb_raw:
         video_meta = get(item, "videoMeta", default={}) or {}
-        thumbnail = get(video_meta, "coverUrl") or get(item, "coverUrl")
+        thumb_raw = get(video_meta, "coverUrl") or get(item, "coverUrl")
 
     video_id_raw = get(item, "id", "videoId") or get(item, "webVideoUrl")
+    thumbnail_url = mirror_thumbnail(thumb_raw, video_id_raw)
 
     row = {
         "tiktok_video_id": str(video_id_raw),
@@ -52,7 +75,7 @@ def upsert_video(item, creator_id, sound_id):
         "sound_id": sound_id,
         "caption": get(item, "text", "desc", "caption"),
         "published_at": get(item, "createTimeISO", "createTime"),
-        "thumbnail_url": thumbnail,
+        "thumbnail_url": thumbnail_url,
         "like_count_snapshot": get(item, "diggCount", "likeCount", default=0),
     }
     res = sb.table("videos").upsert(row, on_conflict="tiktok_video_id").execute()
@@ -74,13 +97,6 @@ def main():
     if not items:
         print("No items in raw_tiktok.json — nothing to process")
         return
-
-    # DEBUG: print the actual shape of the first item so we can see real field names
-    print("=== SAMPLE ITEM KEYS ===")
-    print(json.dumps(list(items[0].keys()), indent=2))
-    print("=== SAMPLE ITEM (truncated) ===")
-    print(json.dumps(items[0], indent=2)[:2000])
-    print("=== END SAMPLE ===")
 
     processed = 0
     failed = 0
