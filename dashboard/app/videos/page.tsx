@@ -32,27 +32,28 @@ export default async function VideosPage() {
   }
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 20, marginBottom: 4, color: "#fff" }}>Top 10 — Latest Scrape</h1>
-      <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>
-        Ranked by likes, from the most recent pipeline run
-      </p>
+    <div style={{ padding: "32px 24px", maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontSize: 22, marginBottom: 4, color: "#fff", fontWeight: 700 }}>Trending Videos</h1>
+        <p style={{ color: "#8a8f98", fontSize: 13 }}>Top 10 by likes, from the most recent scrape</p>
+      </div>
 
       {error && (
-        <pre style={{ color: "#f66", background: "#200", padding: 12, borderRadius: 6, whiteSpace: "pre-wrap" }}>
+        <pre style={{ color: "#f87171", background: "#1a1010", padding: 14, borderRadius: 8, whiteSpace: "pre-wrap", border: "1px solid #3a1f1f", fontSize: 12 }}>
           {JSON.stringify(error, null, 2)}
         </pre>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 16 }}>
         {videos.map((v: any, i: number) => (
           <a
             key={v.id}
             href={v.video_url}
             target="_blank"
+            className="card-hover"
             style={{
-              display: "block", background: "#111", borderRadius: 10, overflow: "hidden",
-              textDecoration: "none", color: "#eee", border: "1px solid #222",
+              display: "block", background: "#111214", borderRadius: 12, overflow: "hidden",
+              textDecoration: "none", color: "#eee", border: "1px solid #222427",
             }}
           >
             <div style={{ position: "relative", aspectRatio: "9/16", background: "#000" }}>
@@ -64,26 +65,31 @@ export default async function VideosPage() {
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
               ) : (
-                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#444" }}>
+                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#333", fontSize: 12 }}>
                   no thumbnail
                 </div>
               )}
               <div style={{
-                position: "absolute", top: 8, left: 8, background: "#6cf", color: "#000",
-                fontWeight: 700, fontSize: 12, borderRadius: 4, padding: "2px 6px",
+                position: "absolute", top: 8, left: 8, background: "#5ac8fa", color: "#000",
+                fontWeight: 700, fontSize: 11, borderRadius: 5, padding: "3px 7px",
               }}>
                 #{i + 1}
               </div>
-            </div>
-            <div style={{ padding: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
-                @{v.creators?.tiktok_username ?? "unknown"}
+              <div style={{
+                position: "absolute", bottom: 0, left: 0, right: 0, padding: "24px 10px 10px",
+                background: "linear-gradient(transparent, rgba(0,0,0,0.85))",
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>
+                  @{v.creators?.tiktok_username ?? "unknown"}
+                </div>
               </div>
-              <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>
+            </div>
+            <div style={{ padding: "10px 12px" }}>
+              <div style={{ fontSize: 11, color: "#8a8f98", marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {v.sounds?.sound_name ?? "—"}
               </div>
-              <div style={{ fontSize: 12, color: "#6cf" }}>
-                ❤ {v.like_count_snapshot?.toLocaleString() ?? "—"} likes
+              <div style={{ fontSize: 12, color: "#5ac8fa", fontWeight: 600 }}>
+                ❤ {v.like_count_snapshot?.toLocaleString() ?? "—"}
               </div>
             </div>
           </a>
@@ -91,7 +97,9 @@ export default async function VideosPage() {
       </div>
 
       {videos.length === 0 && !error && (
-        <p style={{ marginTop: 16, color: "#666" }}>No data yet — run the pipeline first.</p>
+        <div style={{ textAlign: "center", padding: "60px 0", color: "#54585f" }}>
+          No data yet — run the pipeline first.
+        </div>
       )}
     </div>
   );
