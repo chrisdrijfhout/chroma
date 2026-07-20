@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import RefreshButton from "./RefreshButton";
 import { supabase } from "@/lib/supabaseClient";
 
