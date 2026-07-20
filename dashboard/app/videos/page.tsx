@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import SafeImage from "@/components/SafeImage";
 
 export default async function VideosPage() {
   const { data: latest } = await supabase
@@ -57,18 +58,7 @@ export default async function VideosPage() {
             }}
           >
             <div style={{ position: "relative", aspectRatio: "9/16", background: "#000" }}>
-              {v.thumbnail_url ? (
-                <img
-                  src={v.thumbnail_url}
-                  alt={v.caption ?? ""}
-                  referrerPolicy="no-referrer"
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              ) : (
-                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#333", fontSize: 12 }}>
-                  no thumbnail
-                </div>
-              )}
+              <SafeImage src={v.thumbnail_url} alt={v.caption ?? ""} />
               <div style={{
                 position: "absolute", top: 8, left: 8, background: "#5ac8fa", color: "#000",
                 fontWeight: 700, fontSize: 11, borderRadius: 5, padding: "3px 7px",
