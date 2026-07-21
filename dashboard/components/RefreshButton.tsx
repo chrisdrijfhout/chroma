@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 
-const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour, matches the new hourly cron
 
 export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null }) {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
@@ -15,7 +15,7 @@ export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null 
       setRemaining(left > 0 ? left : 0);
     };
     tick();
-    const interval = setInterval(tick, 60_000); // update every minute
+    const interval = setInterval(tick, 30_000);
     return () => clearInterval(interval);
   }, [lastRunAt]);
 
@@ -36,9 +36,8 @@ export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null 
   }
 
   function formatRemaining(ms: number) {
-    const hrs = Math.floor(ms / (60 * 60 * 1000));
-    const mins = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
-    return `${hrs}h ${mins}m`;
+    const mins = Math.floor(ms / (60 * 1000));
+    return mins > 0 ? `${mins}m` : "<1m";
   }
 
   const label =
@@ -52,7 +51,7 @@ export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null 
     <button
       onClick={handleClick}
       disabled={state === "loading" || onCooldown}
-      title={onCooldown ? "Scraping is limited to once every 24 hours to control cost" : undefined}
+      title={onCooldown ? "Scraping is limited to once every hour to control cost" : undefined}
       style={{
         fontFamily: "inherit", fontSize: 12, fontWeight: 600,
         color: onCooldown ? "#54585f" : "#0a0a0a",

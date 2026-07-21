@@ -1,23 +1,20 @@
-export const dynamic = 'force-dynamic';
 import { supabase } from "@/lib/supabaseClient";
 import SafeImage from "@/components/SafeImage";
 
-export default async function VideosPage() {
-  const { data: latest } = await supabase
-    .from("videos")
-    .select("first_collected_at")
-    .order("first_collected_at", { ascending: false })
-    .limit(1)
-    .single();
+export const dynamic = 'force-dynamic';
+
+export default async function VideosPage({
+  searchParams,
+}: {
+  searchParams: { range?: string };
+}) {
+  const range = searchParams?.range === "week" ? "week" : "latest";
 
   let videos: any[] = [];
   let error: any = null;
 
-  if (latest?.first_collected_at) {
-    const cutoff = new Date(
-      new Date(latest.first_collected_at).getTime() - 60 * 60 * 1000
-    ).toISOString();
-
+  if (range === "week") {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const result = await supabase
       .from("videos")
       .select(`
@@ -25,19 +22,57 @@ export default async function VideosPage() {
         creators ( tiktok_username ),
         sounds ( sound_name )
       `)
-      .gte("first_collected_at", cutoff)
+      .gte("first_collected_at", sevenDaysAgo)
       .order("like_count_snapshot", { ascending: false })
       .limit(10);
-
     videos = result.data ?? [];
     error = result.error;
+  } else {
+    const { data: latest } = await supabase
+      .from("videos")
+      .select("first_collected_at")
+      .order("first_collected_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (latest?.first_collected_at) {
+      const cutoff = new Date(
+        new Date(latest.first_collected_at).getTime() - 60 * 60 * 1000
+      ).toISOString();
+      const result = await supabase
+        .from("videos")
+        .select(`
+          id, caption, video_url, published_at, thumbnail_url, like_count_snapshot,
+          creators ( tiktok_username ),
+          sounds ( sound_name )
+        `)
+        .gte("first_collected_at", cutoff)
+        .order("like_count_snapshot", { ascending: false })
+        .limit(10);
+      videos = result.data ?? [];
+      error = result.error;
+    }
   }
+
+  const tabStyle = (active: boolean) => ({
+    padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+    textDecoration: "none", cursor: "pointer",
+    background: active ? "#5ac8fa" : "#111214",
+    color: active ? "#0a0a0a" : "#8a8f98",
+    border: `1px solid ${active ? "#5ac8fa" : "#222427"}`,
+  });
 
   return (
     <div style={{ padding: "32px 24px", maxWidth: 1200, margin: "0 auto" }}>
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 22, marginBottom: 4, color: "#fff", fontWeight: 700 }}>Trending Videos</h1>
-        <p style={{ color: "#8a8f98", fontSize: 13 }}>Top 10 by likes, from the most recent scrape</p>
+      <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 22, marginBottom: 4, color: "#fff", fontWeight: 700 }}>Trending Videos</h1>
+          <p style={{ color: "#8a8f98", fontSize: 13 }}>Top 10 by likes</p>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <a href="/videos?range=latest" style={tabStyle(range === "latest")}>Latest Scrape</a>
+          <a href="/videos?range=week" style={tabStyle(range === "week")}>This Week</a>
+        </div>
       </div>
 
       {error && (
@@ -89,7 +124,7 @@ export default async function VideosPage() {
 
       {videos.length === 0 && !error && (
         <div style={{ textAlign: "center", padding: "60px 0", color: "#54585f" }}>
-          No data yet — run the pipeline first.
+          No data yet for this range.
         </div>
       )}
     </div>
