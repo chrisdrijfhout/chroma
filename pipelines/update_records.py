@@ -40,6 +40,7 @@ def upsert_sound(item):
 
 def mirror_thumbnail(tiktok_thumbnail_url, video_id_raw):
     if not tiktok_thumbnail_url:
+        print(f"  (no thumbnail source found for {video_id_raw})")
         return None
     try:
         resp = requests.get(tiktok_thumbnail_url, timeout=10, headers={
@@ -58,12 +59,17 @@ def mirror_thumbnail(tiktok_thumbnail_url, video_id_raw):
         return None
 
 def upsert_video(item, creator_id, sound_id):
-    thumb_raw = get(item, "covers", default={})
-    if isinstance(thumb_raw, dict):
-        thumb_raw = get(thumb_raw, "default", "origin", "dynamic")
+    # Confirmed field for this scraper: videoMeta.coverUrl — check it first.
+    video_meta = get(item, "videoMeta", default={}) or {}
+    thumb_raw = get(video_meta, "coverUrl")
+
+    # Fallbacks, in case a future run uses a slightly different actor/task.
     if not thumb_raw:
-        video_meta = get(item, "videoMeta", default={}) or {}
-        thumb_raw = get(video_meta, "coverUrl") or get(item, "coverUrl")
+        covers = get(item, "covers", default={})
+        if isinstance(covers, dict):
+            thumb_raw = get(covers, "default", "origin", "dynamic")
+    if not thumb_raw:
+        thumb_raw = get(item, "coverUrl")
 
     video_id_raw = get(item, "id", "videoId") or get(item, "webVideoUrl")
     thumbnail_url = mirror_thumbnail(thumb_raw, video_id_raw)
@@ -78,9 +84,6 @@ def upsert_video(item, creator_id, sound_id):
         "published_at": get(item, "createTimeISO", "createTime"),
         "thumbnail_url": thumbnail_url,
         "like_count_snapshot": get(item, "diggCount", "likeCount", default=0),
-        # This is the key fix: updated on EVERY sighting, not just the first.
-        # first_collected_at is left alone here so it keeps its original
-        # value from whenever the video was first discovered.
         "last_collected_at": now_iso,
     }
     res = sb.table("videos").upsert(row, on_conflict="tiktok_video_id").execute()
