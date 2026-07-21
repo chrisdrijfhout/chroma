@@ -3,15 +3,12 @@ from apify_client import ApifyClient
 
 TASK_ID = "5pgv9BNd5V82yozfv"
 
-# Hard cost cap, enforced here regardless of what the task's own saved
-# settings say — this overrides the task's input for this specific run.
-RUN_INPUT_OVERRIDE = {
-    "resultsPerPage": 20,   # cap per hashtag
-}
-
 def collect():
     client = ApifyClient(os.environ["APIFY_API_TOKEN"])
-    run = client.task(TASK_ID).call(task_input=RUN_INPUT_OVERRIDE)
+    # No input override here anymore — this now respects whatever hashtags,
+    # result limits, and sort settings you've configured directly in the
+    # Apify Console for this task. Change cost/scope there, not in this file.
+    run = client.task(TASK_ID).call()
 
     dataset_id = (
         run.get("defaultDatasetId") if isinstance(run, dict)
