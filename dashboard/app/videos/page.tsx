@@ -22,7 +22,7 @@ export default async function VideosPage({
         creators ( tiktok_username ),
         sounds ( sound_name )
       `)
-      .gte("first_collected_at", sevenDaysAgo)
+      .gte("last_collected_at", sevenDaysAgo)
       .order("like_count_snapshot", { ascending: false })
       .limit(10);
     videos = result.data ?? [];
@@ -30,14 +30,14 @@ export default async function VideosPage({
   } else {
     const { data: latest } = await supabase
       .from("videos")
-      .select("first_collected_at")
-      .order("first_collected_at", { ascending: false })
+      .select("last_collected_at")
+      .order("last_collected_at", { ascending: false })
       .limit(1)
       .single();
 
-    if (latest?.first_collected_at) {
+    if (latest?.last_collected_at) {
       const cutoff = new Date(
-        new Date(latest.first_collected_at).getTime() - 60 * 60 * 1000
+        new Date(latest.last_collected_at).getTime() - 60 * 60 * 1000
       ).toISOString();
       const result = await supabase
         .from("videos")
@@ -46,7 +46,7 @@ export default async function VideosPage({
           creators ( tiktok_username ),
           sounds ( sound_name )
         `)
-        .gte("first_collected_at", cutoff)
+        .gte("last_collected_at", cutoff)
         .order("like_count_snapshot", { ascending: false })
         .limit(10);
       videos = result.data ?? [];

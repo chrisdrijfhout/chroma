@@ -13,9 +13,9 @@ async function getStats(range: "today" | "week" | "all") {
   const soundQuery = supabase.from("sounds").select("*", { count: "exact", head: true });
 
   if (since) {
-    videoQuery.gte("first_collected_at", since);
-    creatorQuery.gte("first_seen_at", since);
-    soundQuery.gte("first_seen_at", since);
+    videoQuery.gte("last_collected_at", since);
+    creatorQuery.gte("last_seen_at", since);
+    soundQuery.gte("last_seen_at", since);
   }
 
   const [{ count: videoCount }, { count: creatorCount }, { count: soundCount }] = await Promise.all([
@@ -33,8 +33,8 @@ async function getDailyActivity() {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data } = await supabase
     .from("videos")
-    .select("first_collected_at")
-    .gte("first_collected_at", sevenDaysAgo);
+    .select("last_collected_at")
+    .gte("last_collected_at", sevenDaysAgo);
 
   const counts: Record<string, number> = {};
   for (let i = 6; i >= 0; i--) {
@@ -43,7 +43,7 @@ async function getDailyActivity() {
     counts[key] = 0;
   }
   (data ?? []).forEach((row: any) => {
-    const key = new Date(row.first_collected_at).toLocaleDateString("en-US", { weekday: "short" });
+    const key = new Date(row.last_collected_at).toLocaleDateString("en-US", { weekday: "short" });
     if (key in counts) counts[key] += 1;
   });
 

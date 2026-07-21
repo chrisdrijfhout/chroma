@@ -13,10 +13,10 @@ export default async function SoundsPage({
   if (range === "week") since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   if (range === "latest") {
     const { data: latest } = await supabase
-      .from("videos").select("first_collected_at")
-      .order("first_collected_at", { ascending: false }).limit(1).single();
-    if (latest?.first_collected_at) {
-      since = new Date(new Date(latest.first_collected_at).getTime() - 60 * 60 * 1000).toISOString();
+      .from("videos").select("last_collected_at")
+      .order("last_collected_at", { ascending: false }).limit(1).single();
+    if (latest?.last_collected_at) {
+      since = new Date(new Date(latest.last_collected_at).getTime() - 60 * 60 * 1000).toISOString();
     }
   }
 
@@ -24,13 +24,13 @@ export default async function SoundsPage({
     .from("sounds")
     .select(`
       id, sound_name, original_artist,
-      videos ( id, like_count_snapshot, creator_id, first_collected_at )
+      videos ( id, like_count_snapshot, creator_id, last_collected_at )
     `);
 
   const ranked = (sounds ?? [])
     .map((s: any) => {
       const relevantVideos = since
-        ? (s.videos ?? []).filter((v: any) => v.first_collected_at >= since)
+        ? (s.videos ?? []).filter((v: any) => v.last_collected_at >= since)
         : (s.videos ?? []);
       const videoCount = relevantVideos.length;
       const totalLikes = relevantVideos.reduce((sum: number, v: any) => sum + (v.like_count_snapshot ?? 0), 0);

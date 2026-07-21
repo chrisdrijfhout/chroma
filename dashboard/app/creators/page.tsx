@@ -13,10 +13,10 @@ export default async function CreatorsPage({
   if (range === "week") since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   if (range === "latest") {
     const { data: latest } = await supabase
-      .from("videos").select("first_collected_at")
-      .order("first_collected_at", { ascending: false }).limit(1).single();
-    if (latest?.first_collected_at) {
-      since = new Date(new Date(latest.first_collected_at).getTime() - 60 * 60 * 1000).toISOString();
+      .from("videos").select("last_collected_at")
+      .order("last_collected_at", { ascending: false }).limit(1).single();
+    if (latest?.last_collected_at) {
+      since = new Date(new Date(latest.last_collected_at).getTime() - 60 * 60 * 1000).toISOString();
     }
   }
 
@@ -24,13 +24,13 @@ export default async function CreatorsPage({
     .from("creators")
     .select(`
       id, tiktok_username, follower_count,
-      videos ( id, like_count_snapshot, first_collected_at )
+      videos ( id, like_count_snapshot, last_collected_at )
     `);
 
   const ranked = (creators ?? [])
     .map((c: any) => {
       const relevantVideos = since
-        ? (c.videos ?? []).filter((v: any) => v.first_collected_at >= since)
+        ? (c.videos ?? []).filter((v: any) => v.last_collected_at >= since)
         : (c.videos ?? []);
       const videoCount = relevantVideos.length;
       const totalLikes = relevantVideos.reduce((sum: number, v: any) => sum + (v.like_count_snapshot ?? 0), 0);
