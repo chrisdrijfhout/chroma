@@ -1,4 +1,5 @@
 import os, json, hashlib
+from datetime import datetime, timezone
 import requests
 from supabase import create_client
 
@@ -18,6 +19,7 @@ def upsert_creator(item):
         "tiktok_username": username or "unknown",
         "tiktok_user_id": get(author, "id", "userId"),
         "follower_count": get(author, "fans", "followerCount"),
+        "last_seen_at": datetime.now(timezone.utc).isoformat(),
     }
     res = sb.table("creators").upsert(row, on_conflict="tiktok_username").execute()
     return res.data[0]["id"]
@@ -31,14 +33,12 @@ def upsert_sound(item):
         "tiktok_sound_id": music_id,
         "sound_name": get(music, "musicName", "title"),
         "original_artist": get(music, "musicAuthor", "authorName"),
+        "last_seen_at": datetime.now(timezone.utc).isoformat(),
     }
     res = sb.table("sounds").upsert(row, on_conflict="tiktok_sound_id").execute()
     return res.data[0]["id"]
 
 def mirror_thumbnail(tiktok_thumbnail_url, video_id_raw):
-    """Download the thumbnail server-side (bypasses browser hotlink protection)
-    and re-host it in Supabase Storage. Returns our own public URL, or None
-    if anything goes wrong — never lets a bad thumbnail crash the whole run."""
     if not tiktok_thumbnail_url:
         return None
     try:
@@ -67,6 +67,7 @@ def upsert_video(item, creator_id, sound_id):
 
     video_id_raw = get(item, "id", "videoId") or get(item, "webVideoUrl")
     thumbnail_url = mirror_thumbnail(thumb_raw, video_id_raw)
+    now_iso = datetime.now(timezone.utc).isoformat()
 
     row = {
         "tiktok_video_id": str(video_id_raw),
@@ -77,6 +78,10 @@ def upsert_video(item, creator_id, sound_id):
         "published_at": get(item, "createTimeISO", "createTime"),
         "thumbnail_url": thumbnail_url,
         "like_count_snapshot": get(item, "diggCount", "likeCount", default=0),
+        # This is the key fix: updated on EVERY sighting, not just the first.
+        # first_collected_at is left alone here so it keeps its original
+        # value from whenever the video was first discovered.
+        "last_collected_at": now_iso,
     }
     res = sb.table("videos").upsert(row, on_conflict="tiktok_video_id").execute()
     video_id = res.data[0]["id"]
