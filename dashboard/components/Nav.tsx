@@ -1,6 +1,9 @@
 import RefreshButton from "./RefreshButton";
 import { supabase } from "@/lib/supabaseClient";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const links = [
   { href: "/videos", label: "Trending Videos" },
   { href: "/creators", label: "Creators" },
@@ -10,16 +13,16 @@ const links = [
 
 const CLIENT_NAME = "Tribal Music Group";
 
-function formatLastRefresh(iso: string | null) {
+function formatRelativeTime(iso: string | null) {
   if (!iso) return "No data yet";
-  const date = new Date(iso);
-  const now = new Date();
-  const sameDay = date.toDateString() === now.toDateString();
-  const dateStr = sameDay
-    ? "Today"
-    : date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  return `${dateStr}, ${timeStr}`;
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ${mins % 60}m ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 }
 
 export default async function Nav() {
@@ -58,7 +61,7 @@ export default async function Nav() {
         borderLeft: "1px solid #222427", paddingLeft: 16, marginRight: 24,
       }}>
         <span style={{ color: "#54585f" }}>Last refresh:</span>
-        <span style={{ color: "#dcdde0", fontWeight: 600 }}>{formatLastRefresh(lastRunAt)}</span>
+        <span style={{ color: "#dcdde0", fontWeight: 600 }}>{formatRelativeTime(lastRunAt)}</span>
       </div>
 
       {links.map((l) => (
