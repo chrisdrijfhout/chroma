@@ -39,8 +39,8 @@ def upsert_sound(item):
     return res.data[0]["id"]
 
 def get_oembed_thumbnail(video_url):
-    """Free fallback: TikTok's public oEmbed endpoint, used when the
-    scraper's own thumbnail field is missing or empty for this video."""
+    """The confirmed-working method — TikTok's free public oEmbed endpoint.
+    Used for every video now, not just as a backfill fallback."""
     if not video_url:
         return None
     try:
@@ -52,12 +52,12 @@ def get_oembed_thumbnail(video_url):
         resp.raise_for_status()
         return resp.json().get("thumbnail_url")
     except Exception as e:
-        print(f"  (oEmbed fallback failed: {e})")
+        print(f"  (oEmbed lookup failed: {e})")
         return None
 
 def mirror_thumbnail(image_url, video_id_raw):
     if not image_url:
-        print(f"  (no thumbnail source at all for {video_id_raw})")
+        print(f"  (no thumbnail available for {video_id_raw})")
         return None
     try:
         resp = requests.get(image_url, timeout=10, headers={
@@ -76,27 +76,12 @@ def mirror_thumbnail(image_url, video_id_raw):
         return None
 
 def upsert_video(item, creator_id, sound_id):
-    # Primary source: confirmed field for this scraper.
-    video_meta = get(item, "videoMeta", default={}) or {}
-    thumb_raw = get(video_meta, "coverUrl")
-
-    # Fallback 1: alternate field names, in case of a different actor/task.
-    if not thumb_raw:
-        covers = get(item, "covers", default={})
-        if isinstance(covers, dict):
-            thumb_raw = get(covers, "default", "origin", "dynamic")
-    if not thumb_raw:
-        thumb_raw = get(item, "coverUrl")
-
     video_url = get(item, "webVideoUrl", "url") or ""
     video_id_raw = get(item, "id", "videoId") or video_url
 
-    # Fallback 2: free oEmbed lookup, automatically, right here — no
-    # separate manual backfill step needed anymore.
-    if not thumb_raw:
-        thumb_raw = get_oembed_thumbnail(video_url)
-
-    thumbnail_url = mirror_thumbnail(thumb_raw, video_id_raw)
+    # Always use the confirmed-working method, every time.
+    oembed_thumb = get_oembed_thumbnail(video_url)
+    thumbnail_url = mirror_thumbnail(oembed_thumb, video_id_raw)
     now_iso = datetime.now(timezone.utc).isoformat()
 
     row = {
