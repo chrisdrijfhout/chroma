@@ -1,13 +1,13 @@
 import os, json
 from apify_client import ApifyClient
 
-TASK_ID = "5pgv9BNd5V82yozfv"
+TASK_ID = "5brTfepvXGMQKUHBk"
 
 def collect():
     client = ApifyClient(os.environ["APIFY_API_TOKEN"])
-    # No input override here anymore — this now respects whatever hashtags,
-    # result limits, and sort settings you've configured directly in the
-    # Apify Console for this task. Change cost/scope there, not in this file.
+    # No input override — respects whatever hashtags, result limits, and
+    # sort settings you've configured directly in the Apify Console for
+    # this task. Change cost/scope there, not in this file.
     run = client.task(TASK_ID).call()
 
     dataset_id = (
