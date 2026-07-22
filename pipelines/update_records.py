@@ -38,12 +38,29 @@ def upsert_sound(item):
     res = sb.table("sounds").upsert(row, on_conflict="tiktok_sound_id").execute()
     return res.data[0]["id"]
 
-def mirror_thumbnail(tiktok_thumbnail_url, video_id_raw):
-    if not tiktok_thumbnail_url:
-        print(f"  (no thumbnail source found for {video_id_raw})")
+def get_oembed_thumbnail(video_url):
+    """Free fallback: TikTok's public oEmbed endpoint, used when the
+    scraper's own thumbnail field is missing or empty for this video."""
+    if not video_url:
         return None
     try:
-        resp = requests.get(tiktok_thumbnail_url, timeout=10, headers={
+        resp = requests.get(
+            "https://www.tiktok.com/oembed",
+            params={"url": video_url},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return resp.json().get("thumbnail_url")
+    except Exception as e:
+        print(f"  (oEmbed fallback failed: {e})")
+        return None
+
+def mirror_thumbnail(image_url, video_id_raw):
+    if not image_url:
+        print(f"  (no thumbnail source at all for {video_id_raw})")
+        return None
+    try:
+        resp = requests.get(image_url, timeout=10, headers={
             "User-Agent": "Mozilla/5.0",
             "Referer": "https://www.tiktok.com/",
         })
@@ -59,11 +76,11 @@ def mirror_thumbnail(tiktok_thumbnail_url, video_id_raw):
         return None
 
 def upsert_video(item, creator_id, sound_id):
-    # Confirmed field for this scraper: videoMeta.coverUrl — check it first.
+    # Primary source: confirmed field for this scraper.
     video_meta = get(item, "videoMeta", default={}) or {}
     thumb_raw = get(video_meta, "coverUrl")
 
-    # Fallbacks, in case a future run uses a slightly different actor/task.
+    # Fallback 1: alternate field names, in case of a different actor/task.
     if not thumb_raw:
         covers = get(item, "covers", default={})
         if isinstance(covers, dict):
@@ -71,13 +88,20 @@ def upsert_video(item, creator_id, sound_id):
     if not thumb_raw:
         thumb_raw = get(item, "coverUrl")
 
-    video_id_raw = get(item, "id", "videoId") or get(item, "webVideoUrl")
+    video_url = get(item, "webVideoUrl", "url") or ""
+    video_id_raw = get(item, "id", "videoId") or video_url
+
+    # Fallback 2: free oEmbed lookup, automatically, right here — no
+    # separate manual backfill step needed anymore.
+    if not thumb_raw:
+        thumb_raw = get_oembed_thumbnail(video_url)
+
     thumbnail_url = mirror_thumbnail(thumb_raw, video_id_raw)
     now_iso = datetime.now(timezone.utc).isoformat()
 
     row = {
         "tiktok_video_id": str(video_id_raw),
-        "video_url": get(item, "webVideoUrl", "url") or "",
+        "video_url": video_url,
         "creator_id": creator_id,
         "sound_id": sound_id,
         "caption": get(item, "text", "desc", "caption"),
