@@ -44,14 +44,23 @@ export default async function Nav() {
       <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 20, textDecoration: "none" }}>
         <div style={{
           width: 30, height: 30, borderRadius: 8,
-          background: "linear-gradient(135deg, #5ac8fa, #a78bfa)",
+          background: "linear-gradient(135deg, #e8edf2 0%, #c9d6e3 20%, #5ac8fa 55%, #a78bfa 85%, #e8edf2 100%)",
+          backgroundSize: "200% 200%",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontWeight: 800, fontSize: 15, color: "#0a0a0a", flexShrink: 0,
+          boxShadow: "0 0 12px rgba(90,200,250,0.25)",
         }}>
           C
         </div>
         <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
-          <span style={{ fontWeight: 700, color: "#fff", letterSpacing: 0.5, fontSize: 15 }}>CHROMA</span>
+          <span style={{
+            fontWeight: 700, letterSpacing: 0.5, fontSize: 15,
+            background: "linear-gradient(90deg, #fff 0%, #d8dee5 40%, #fff 60%, #d8dee5 100%)",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}>
+            CHROMA
+          </span>
           <span style={{ fontSize: 10, color: "#54585f" }}>× {CLIENT_NAME}</span>
         </div>
       </a>
