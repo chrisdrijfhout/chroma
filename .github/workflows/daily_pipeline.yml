@@ -1,9 +1,9 @@
 name: Daily Phonk Radar Pipeline
 
 on:
-  schedule:
-    - cron: '0 6 * * *'
   workflow_dispatch: {}
+  # Automatic hourly schedule removed for demo control — trigger manually
+  # via this Actions tab, or the "Refresh Data" button on the dashboard.
 
 jobs:
   run-pipeline:
