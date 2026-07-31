@@ -24,31 +24,33 @@ def upsert_creator(item):
     res = sb.table("creators").upsert(row, on_conflict="tiktok_username").execute()
     return res.data[0]["id"]
 
-def upsert_sound(item):
+def upsert_sound(item, debug=False):
     music = get(item, "musicMeta", "music", default={}) or {}
     music_id = get(music, "musicId", "id")
     if not music_id:
         return None
+
+    original_val = get(music, "musicOriginal")
+    if debug:
+        print(f"=== DEBUG musicMeta ===")
+        print(f"Full musicMeta dict: {json.dumps(music, indent=2)[:800]}")
+        print(f"musicOriginal raw value: {original_val!r} (type: {type(original_val).__name__})")
+
     row = {
         "tiktok_sound_id": music_id,
         "sound_name": get(music, "musicName", "title"),
         "original_artist": get(music, "musicAuthor", "authorName"),
+        "is_original": bool(original_val) if original_val is not None else False,
         "last_seen_at": datetime.now(timezone.utc).isoformat(),
     }
     res = sb.table("sounds").upsert(row, on_conflict="tiktok_sound_id").execute()
     return res.data[0]["id"]
 
 def get_oembed_thumbnail(video_url):
-    """The confirmed-working method — TikTok's free public oEmbed endpoint.
-    Used for every video now, not just as a backfill fallback."""
     if not video_url:
         return None
     try:
-        resp = requests.get(
-            "https://www.tiktok.com/oembed",
-            params={"url": video_url},
-            timeout=10,
-        )
+        resp = requests.get("https://www.tiktok.com/oembed", params={"url": video_url}, timeout=10)
         resp.raise_for_status()
         return resp.json().get("thumbnail_url")
     except Exception as e:
@@ -66,10 +68,7 @@ def mirror_thumbnail(image_url, video_id_raw):
         })
         resp.raise_for_status()
         filename = f"{hashlib.md5(str(video_id_raw).encode()).hexdigest()}.jpg"
-        sb.storage.from_(BUCKET).upload(
-            filename, resp.content,
-            {"content-type": "image/jpeg", "upsert": "true"},
-        )
+        sb.storage.from_(BUCKET).upload(filename, resp.content, {"content-type": "image/jpeg", "upsert": "true"})
         return sb.storage.from_(BUCKET).get_public_url(filename)
     except Exception as e:
         print(f"  (thumbnail mirror skipped for {video_id_raw}: {e})")
@@ -78,8 +77,6 @@ def mirror_thumbnail(image_url, video_id_raw):
 def upsert_video(item, creator_id, sound_id):
     video_url = get(item, "webVideoUrl", "url") or ""
     video_id_raw = get(item, "id", "videoId") or video_url
-
-    # Always use the confirmed-working method, every time.
     oembed_thumb = get_oembed_thumbnail(video_url)
     thumbnail_url = mirror_thumbnail(oembed_thumb, video_id_raw)
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -110,17 +107,16 @@ def upsert_video(item, creator_id, sound_id):
 def main():
     with open("raw_tiktok.json") as f:
         items = json.load(f)
-
     if not items:
         print("No items in raw_tiktok.json — nothing to process")
         return
 
     processed = 0
     failed = 0
-    for item in items:
+    for i, item in enumerate(items):
         try:
             creator_id = upsert_creator(item)
-            sound_id = upsert_sound(item)
+            sound_id = upsert_sound(item, debug=(i == 0))
             upsert_video(item, creator_id, sound_id)
             processed += 1
         except Exception as e:
