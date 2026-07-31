@@ -4,10 +4,10 @@ import SafeImage from "@/components/SafeImage";
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const EDIT_KEYWORDS = ["slowed", "sped up", "spdup", "sped-up", "speedup", "reverb", "nightcore"];
+const EDIT_KEYWORDS = ["slowed", "sped up", "spdup", "sped-up", "speedup", "reverb", "nightcore", "speed up"];
 
-function looksLikeEdit(caption: string | null, soundName: string | null) {
-  const text = `${caption ?? ""} ${soundName ?? ""}`.toLowerCase();
+function soundNameLooksLikeEdit(soundName: string | null) {
+  const text = (soundName ?? "").toLowerCase();
   return EDIT_KEYWORDS.some((kw) => text.includes(kw));
 }
 
@@ -19,15 +19,11 @@ function formatPostedAt(iso: string | null) {
   });
 }
 
-// Likes-per-hour since posting — works from a single snapshot, unlike
-// growth-rate scoring which needs two visits to the same video. A video
-// with the same like count as another but posted more recently scores
-// higher here, surfacing genuine early momentum instead of just raw size.
 function velocityScore(likes: number, publishedAt: string | null) {
   if (!publishedAt) return 0;
   const hoursSincePosted = Math.max(
     (Date.now() - new Date(publishedAt).getTime()) / (1000 * 60 * 60),
-    0.5 // floor, so a video posted seconds ago doesn't divide by ~0
+    0.5
   );
   return likes / hoursSincePosted;
 }
@@ -55,7 +51,7 @@ export default async function VideosPage({
       .from("videos")
       .select(videoSelect)
       .gte("last_collected_at", sevenDaysAgo)
-      .limit(150);
+      .limit(300);
     videos = result.data ?? [];
     error = result.error;
   } else {
@@ -74,7 +70,7 @@ export default async function VideosPage({
         .from("videos")
         .select(videoSelect)
         .gte("last_collected_at", cutoff)
-        .limit(150);
+        .limit(300);
       videos = result.data ?? [];
       error = result.error;
     }
@@ -82,7 +78,7 @@ export default async function VideosPage({
 
   if (producersOnly) {
     videos = videos.filter((v: any) =>
-      v.sounds?.is_original === true && !looksLikeEdit(v.caption, v.sounds?.sound_name)
+      v.sounds?.is_original === true && !soundNameLooksLikeEdit(v.sounds?.sound_name)
     );
   }
 
@@ -91,8 +87,14 @@ export default async function VideosPage({
       ...v,
       _velocity: velocityScore(v.like_count_snapshot ?? 0, v.published_at),
     }))
-    .sort((a: any, b: any) => b._velocity - a._velocity)
-    .slice(0, 10);
+    .sort((a: any, b: any) => b._velocity - a._velocity);
+
+  // Only cap the general trending view at 10 — Producers Only shows
+  // everything that matches, since the point there is a full scouting
+  // list, not just a top-N snapshot.
+  if (!producersOnly) {
+    videos = videos.slice(0, 10);
+  }
 
   const tabStyle = (active: boolean) => ({
     padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
@@ -113,7 +115,9 @@ export default async function VideosPage({
         <div>
           <h1 style={{ fontSize: 22, marginBottom: 4, color: "#fff", fontWeight: 700 }}>Trending Videos</h1>
           <p style={{ color: "#8a8f98", fontSize: 13 }}>
-            Ranked by likes-per-hour since posting {producersOnly && "· original sounds, edits filtered out"}
+            {producersOnly
+              ? `${videos.length} original-sound video${videos.length !== 1 ? "s" : ""} found`
+              : "Top 10, ranked by likes-per-hour since posting"}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -123,7 +127,7 @@ export default async function VideosPage({
           <a
             href={producersOnly ? `/videos?range=${range}` : `/videos?range=${range}&only=producers`}
             style={tabStyle(producersOnly)}
-            title="Original sounds only, with common edit/repost keywords filtered out"
+            title="Every video using a sound the creator made themselves, not a repost or edit"
           >
             🎹 Producers Only
           </a>
@@ -198,7 +202,7 @@ export default async function VideosPage({
 
       {videos.length === 0 && !error && (
         <div style={{ textAlign: "center", padding: "60px 0", color: "#54585f" }}>
-          {producersOnly ? "No original, non-edit videos in this range yet." : "No data yet for this range."}
+          {producersOnly ? "No original videos in this range yet." : "No data yet for this range."}
         </div>
       )}
     </div>
