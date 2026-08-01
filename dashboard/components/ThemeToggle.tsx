@@ -1,13 +1,17 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-
-  useEffect(() => {
-    const current = document.documentElement.getAttribute("data-theme") as "dark" | "light" | null;
-    if (current) setTheme(current);
-  }, []);
+  // Read the real applied theme immediately on first render — avoids the
+  // "shows the wrong icon until you click twice" mismatch, since this no
+  // longer starts from a guessed default before checking reality.
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    if (typeof document !== "undefined") {
+      const current = document.documentElement.getAttribute("data-theme");
+      return current === "dark" ? "dark" : "light";
+    }
+    return "light";
+  });
 
   function toggle() {
     const next = theme === "dark" ? "light" : "dark";

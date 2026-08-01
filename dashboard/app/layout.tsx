@@ -5,7 +5,7 @@ export const metadata = {
   title: "Chroma",
   description: "Genre-agnostic trend intelligence platform",
   icons: {
-    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ff6ec7'/%3E%3Cstop offset='50%25' stop-color='%235ac8fa'/%3E%3Cstop offset='100%25' stop-color='%23ffd93d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='23' font-family='Arial' font-weight='800' font-size='18' fill='%230a0a0a' text-anchor='middle'%3EC%3C/text%3E%3C/svg%3E",
+    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23c4c4d0'/%3E%3Cstop offset='55%25' stop-color='%23a78bfa'/%3E%3Cstop offset='100%25' stop-color='%236c5ce7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='23' font-family='Arial' font-weight='800' font-size='18' fill='%230a0a0a' text-anchor='middle'%3EC%3C/text%3E%3C/svg%3E",
   },
 };
 
@@ -27,8 +27,7 @@ export default function RootLayout({
       <body>
         <style>{`
           /* Light is the true default — applies immediately from
-             server-rendered HTML, no JS required. Dark is the override,
-             applied only once the client script sets the attribute. */
+             server-rendered HTML, no JS required. Dark is the override. */
           :root {
             --bg: #f7f7f8;
             --bg-elevated: #ffffff;
@@ -39,10 +38,10 @@ export default function RootLayout({
             --text: #16171a;
             --text-dim: #5c6068;
             --text-faint: #90939a;
-            --spectrum-1: #e0529e;
-            --spectrum-2: #2b9fd8;
-            --spectrum-3: #d9a300;
-            --accent: #2b9fd8;
+            --spectrum-1: #9b9ba8;
+            --spectrum-2: #8b7cf6;
+            --spectrum-3: #6c5ce7;
+            --accent: #7c6ce8;
             --success: #16a34a;
             --danger: #dc2626;
           }
@@ -56,10 +55,10 @@ export default function RootLayout({
             --text: #eee;
             --text-dim: #8a8f98;
             --text-faint: #54585f;
-            --spectrum-1: #ff6ec7;
-            --spectrum-2: #5ac8fa;
-            --spectrum-3: #ffd93d;
-            --accent: #5ac8fa;
+            --spectrum-1: #c4c4d0;
+            --spectrum-2: #a78bfa;
+            --spectrum-3: #8b7cf6;
+            --accent: #a78bfa;
             --success: #4ade80;
             --danger: #f87171;
           }
@@ -84,7 +83,7 @@ export default function RootLayout({
             background: var(--card-hover) !important;
             border-color: var(--border-light) !important;
             transform: translateY(-4px);
-            box-shadow: 0 12px 24px -8px rgba(0,0,0,0.2), 0 0 0 1px rgba(43,159,216,0.1);
+            box-shadow: 0 12px 24px -8px rgba(0,0,0,0.2), 0 0 0 1px rgba(139,124,246,0.15);
           }
           @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(12px); }
@@ -107,7 +106,7 @@ export default function RootLayout({
           ::-webkit-scrollbar-track { background: transparent; }
           ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
 
-          ::selection { background: var(--spectrum-2); color: var(--bg); }
+          ::selection { background: var(--spectrum-2); color: #fff; }
         `}</style>
         <Nav />
         {children}
