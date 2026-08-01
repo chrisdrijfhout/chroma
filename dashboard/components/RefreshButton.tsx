@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 
-const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour, matches the new hourly cron
+const COOLDOWN_MS = 60 * 60 * 1000;
 
 export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null }) {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
@@ -54,9 +54,9 @@ export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null 
       title={onCooldown ? "Scraping is limited to once every hour to control cost" : undefined}
       style={{
         fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-        color: onCooldown ? "#54585f" : "#0a0a0a",
-        background: onCooldown ? "#1a1c1f" : state === "error" ? "#f87171" : "#5ac8fa",
-        border: onCooldown ? "1px solid #2a2d31" : "none",
+        color: onCooldown ? "var(--text-faint)" : "#fff",
+        background: onCooldown ? "var(--card)" : state === "error" ? "var(--danger)" : "var(--accent)",
+        border: onCooldown ? "1px solid var(--border)" : "none",
         borderRadius: 6, padding: "7px 14px",
         cursor: onCooldown || state === "loading" ? "not-allowed" : "pointer",
         opacity: state === "loading" ? 0.7 : 1,
