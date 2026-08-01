@@ -1,4 +1,5 @@
 import RefreshButton from "./RefreshButton";
+import ThemeToggle from "./ThemeToggle";
 import { supabase } from "@/lib/supabaseClient";
 
 export const dynamic = 'force-dynamic';
@@ -38,44 +39,45 @@ export default async function Nav() {
   return (
     <nav style={{
       display: "flex", alignItems: "center", gap: 4, padding: "14px 24px",
-      borderBottom: "1px solid #1c1e21", background: "rgba(10,10,10,0.9)",
+      borderBottom: "1px solid var(--border)", background: "var(--bg)",
       position: "sticky", top: 0, zIndex: 10, backdropFilter: "blur(8px)",
     }}>
       <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 20, textDecoration: "none" }}>
         <div style={{
           width: 30, height: 30, borderRadius: 8,
-          background: "linear-gradient(135deg, #e8edf2 0%, #c9d6e3 20%, #5ac8fa 55%, #a78bfa 85%, #e8edf2 100%)",
-          backgroundSize: "200% 200%",
+          background: "linear-gradient(135deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
           display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: "'Space Grotesk', sans-serif",
           fontWeight: 800, fontSize: 15, color: "#0a0a0a", flexShrink: 0,
-          boxShadow: "0 0 12px rgba(90,200,250,0.25)",
+          boxShadow: "0 0 16px rgba(90,200,250,0.3)",
         }}>
           C
         </div>
         <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
           <span style={{
+            fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 700, letterSpacing: 0.5, fontSize: 15,
-            background: "linear-gradient(90deg, #fff 0%, #d8dee5 40%, #fff 60%, #d8dee5 100%)",
+            background: "linear-gradient(90deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
             backgroundClip: "text",
           }}>
             CHROMA
           </span>
-          <span style={{ fontSize: 10, color: "#54585f" }}>× {CLIENT_NAME}</span>
+          <span style={{ fontSize: 10, color: "var(--text-faint)" }}>× {CLIENT_NAME}</span>
         </div>
       </a>
 
       <div style={{
-        display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#8a8f98",
-        borderLeft: "1px solid #222427", paddingLeft: 16, marginRight: 24,
+        display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-dim)",
+        borderLeft: "1px solid var(--border)", paddingLeft: 16, marginRight: 24,
       }}>
-        <span style={{ color: "#54585f" }}>Last refresh:</span>
-        <span style={{ color: "#dcdde0", fontWeight: 600 }}>{formatRelativeTime(lastRunAt)}</span>
+        <span style={{ color: "var(--text-faint)" }}>Last refresh:</span>
+        <span style={{ color: "var(--text)", fontWeight: 600 }}>{formatRelativeTime(lastRunAt)}</span>
       </div>
 
       {links.map((l) => (
         <a key={l.href} href={l.href} className="nav-link" style={{
-          color: "#8a8f98", textDecoration: "none", fontSize: 13,
+          color: "var(--text-dim)", textDecoration: "none", fontSize: 13,
           padding: "7px 14px", borderRadius: 6, fontWeight: 500,
         }}>
           {l.label}
@@ -83,8 +85,9 @@ export default async function Nav() {
       ))}
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
         <RefreshButton lastRunAt={lastRunAt} />
-        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#54585f" }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
+        <ThemeToggle />
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-faint)" }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
           Live
         </div>
       </div>
