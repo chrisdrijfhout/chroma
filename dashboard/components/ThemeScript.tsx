@@ -3,10 +3,10 @@ export default function ThemeScript() {
     (function() {
       try {
         var saved = localStorage.getItem('chroma-theme');
-        var theme = saved || 'dark';
+        var theme = saved || 'light';
         document.documentElement.setAttribute('data-theme', theme);
       } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.setAttribute('data-theme', 'light');
       }
     })();
   `;
