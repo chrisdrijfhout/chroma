@@ -1,10 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function ThemeToggle() {
-  // Read the real applied theme immediately on first render — avoids the
-  // "shows the wrong icon until you click twice" mismatch, since this no
-  // longer starts from a guessed default before checking reality.
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof document !== "undefined") {
       const current = document.documentElement.getAttribute("data-theme");
@@ -13,11 +10,28 @@ export default function ThemeToggle() {
     return "light";
   });
 
+  // Backup sync: re-check the real attribute after mount, in case
+  // anything changed it between the lazy initializer and this point,
+  // and keep it in sync if another tab changes the theme too.
+  useEffect(() => {
+    const syncFromDom = () => {
+      const current = document.documentElement.getAttribute("data-theme");
+      setTheme(current === "dark" ? "dark" : "light");
+    };
+    syncFromDom();
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "chroma-theme") syncFromDom();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   function toggle() {
     const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
     document.documentElement.setAttribute("data-theme", next);
     localStorage.setItem("chroma-theme", next);
+    setTheme(next);
   }
 
   return (

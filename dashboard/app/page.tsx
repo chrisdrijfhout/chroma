@@ -45,7 +45,10 @@ export default async function HomePage() {
   ];
 
   return (
-    <div style={{ padding: "64px 24px", maxWidth: 820, margin: "0 auto", textAlign: "center" }}>
+    <div style={{
+      padding: "64px 24px", maxWidth: 820, margin: "0 auto", textAlign: "center",
+      display: "flex", flexDirection: "column", alignItems: "center",
+    }}>
       <div style={{
         display: "inline-block", fontSize: 11, color: "var(--spectrum-2)",
         background: "var(--card)", border: "1px solid var(--border-light)",
@@ -54,19 +57,18 @@ export default async function HomePage() {
         PHONK / TIKTOK · FIRST DEPLOYMENT
       </div>
       <h1 style={{
-        fontSize: 40, marginBottom: 12, fontWeight: 700, letterSpacing: -1,
+        fontSize: 40, margin: "0 0 12px 0", fontWeight: 700, letterSpacing: -1,
         background: "linear-gradient(90deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
         WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-        display: "inline-block",
       }}>
         Chroma
       </h1>
-      <p style={{ color: "var(--text-dim)", marginBottom: 40, fontSize: 15, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
+      <p style={{ color: "var(--text-dim)", marginBottom: 40, fontSize: 15, maxWidth: 480 }}>
         Trend intelligence for scenes the big platforms track too late.
         We index the sound, not just the artist — before it has a name.
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 16, width: "100%" }}>
         {cards.map((c) => (
           <div key={c.label} className="card-hover" style={{
             background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px 16px",
