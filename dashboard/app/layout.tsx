@@ -26,6 +26,26 @@ export default function RootLayout({
       </head>
       <body>
         <style>{`
+          /* Light is the true default — applies immediately from
+             server-rendered HTML, no JS required. Dark is the override,
+             applied only once the client script sets the attribute. */
+          :root {
+            --bg: #f7f7f8;
+            --bg-elevated: #ffffff;
+            --card: #ffffff;
+            --card-hover: #f2f3f5;
+            --border: #e4e5e8;
+            --border-light: #d5d7db;
+            --text: #16171a;
+            --text-dim: #5c6068;
+            --text-faint: #90939a;
+            --spectrum-1: #e0529e;
+            --spectrum-2: #2b9fd8;
+            --spectrum-3: #d9a300;
+            --accent: #2b9fd8;
+            --success: #16a34a;
+            --danger: #dc2626;
+          }
           :root[data-theme="dark"] {
             --bg: #0a0a0a;
             --bg-elevated: #0f1216;
@@ -43,23 +63,6 @@ export default function RootLayout({
             --success: #4ade80;
             --danger: #f87171;
           }
-          :root[data-theme="light"] {
-            --bg: #f7f7f8;
-            --bg-elevated: #ffffff;
-            --card: #ffffff;
-            --card-hover: #f2f3f5;
-            --border: #e4e5e8;
-            --border-light: #d5d7db;
-            --text: #16171a;
-            --text-dim: #5c6068;
-            --text-faint: #90939a;
-            --spectrum-1: #e0529e;
-            --spectrum-2: #2b9fd8;
-            --spectrum-3: #d9a300;
-            --accent: #2b9fd8;
-            --success: #16a34a;
-            --danger: #dc2626;
-          }
 
           * { box-sizing: border-box; }
           html, body {
@@ -68,7 +71,6 @@ export default function RootLayout({
             background: var(--bg);
             background-image: radial-gradient(circle at 20% 0%, var(--bg-elevated) 0%, var(--bg) 45%, var(--bg) 100%);
             background-attachment: fixed;
-            transition: background 0.2s ease, color 0.2s ease;
           }
           h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
 
@@ -82,7 +84,7 @@ export default function RootLayout({
             background: var(--card-hover) !important;
             border-color: var(--border-light) !important;
             transform: translateY(-4px);
-            box-shadow: 0 12px 24px -8px rgba(0,0,0,0.35), 0 0 0 1px rgba(90,200,250,0.1);
+            box-shadow: 0 12px 24px -8px rgba(0,0,0,0.2), 0 0 0 1px rgba(43,159,216,0.1);
           }
           @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(12px); }
