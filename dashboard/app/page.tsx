@@ -1,28 +1,14 @@
 import { supabase } from "@/lib/supabaseClient";
-import MiniBarChart from "@/components/MiniBarChart";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-async function getStats(range: "today" | "week" | "all") {
-  let since: string | null = null;
-  if (range === "today") since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  if (range === "week") since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
-  const videoQuery = supabase.from("videos").select("*", { count: "exact", head: true });
-  const creatorQuery = supabase.from("creators").select("*", { count: "exact", head: true });
-  const soundQuery = supabase.from("sounds").select("*", { count: "exact", head: true });
-
-  if (since) {
-    videoQuery.gte("last_collected_at", since);
-    creatorQuery.gte("last_seen_at", since);
-    soundQuery.gte("last_seen_at", since);
-  }
-
+async function getStats() {
   const [{ count: videoCount }, { count: creatorCount }, { count: soundCount }] = await Promise.all([
-    videoQuery, creatorQuery, soundQuery,
+    supabase.from("videos").select("*", { count: "exact", head: true }),
+    supabase.from("creators").select("*", { count: "exact", head: true }),
+    supabase.from("sounds").select("*", { count: "exact", head: true }),
   ]);
-
   return {
     videos: videoCount ?? 0,
     creators: creatorCount ?? 0,
@@ -30,58 +16,42 @@ async function getStats(range: "today" | "week" | "all") {
   };
 }
 
-async function getDailyActivity() {
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { data } = await supabase
-    .from("videos")
-    .select("last_collected_at")
-    .gte("last_collected_at", sevenDaysAgo);
-
-  const counts: Record<string, number> = {};
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-    const key = d.toLocaleDateString("en-US", { weekday: "short" });
-    counts[key] = 0;
-  }
-  (data ?? []).forEach((row: any) => {
-    const key = new Date(row.last_collected_at).toLocaleDateString("en-US", { weekday: "short" });
-    if (key in counts) counts[key] += 1;
-  });
-
-  return Object.entries(counts).map(([label, value]) => ({ label, value }));
+function formatRelativeTime(iso: string | null) {
+  if (!iso) return "No data yet";
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ${mins % 60}m ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 }
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: { range?: string };
-}) {
-  const range = (["today", "week", "all"].includes(searchParams?.range ?? "") ? searchParams.range : "all") as "today" | "week" | "all";
+export default async function HomePage() {
+  const stats = await getStats();
 
-  const [stats, activity] = await Promise.all([getStats(range), getDailyActivity()]);
+  const { data: latest } = await supabase
+    .from("videos")
+    .select("last_collected_at")
+    .order("last_collected_at", { ascending: false })
+    .limit(1)
+    .single();
 
   const cards = [
     { label: "Videos Tracked", value: stats.videos },
-    { label: "Creators", value: stats.creators },
-    { label: "Sounds", value: stats.sounds },
+    { label: "Creators Identified", value: stats.creators },
+    { label: "Sounds Indexed", value: stats.sounds },
   ];
 
-  const rangeTabStyle = (active: boolean) => ({
-    padding: "4px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-    textDecoration: "none", cursor: "pointer",
-    background: active ? "var(--accent)" : "transparent",
-    color: active ? "#0a0a0a" : "var(--text-dim)",
-    border: `1px solid ${active ? "var(--accent)" : "var(--border-light)"}`,
-  });
-
   return (
-    <div style={{ padding: "56px 24px", maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
+    <div style={{ padding: "64px 24px", maxWidth: 820, margin: "0 auto", textAlign: "center" }}>
       <div style={{
         display: "inline-block", fontSize: 11, color: "var(--spectrum-2)",
         background: "var(--card)", border: "1px solid var(--border-light)",
         borderRadius: 20, padding: "4px 14px", marginBottom: 20, letterSpacing: 0.5,
       }}>
-        FIRST DEPLOYMENT · PHONK / TIKTOK
+        PHONK / TIKTOK · FIRST DEPLOYMENT
       </div>
       <h1 style={{
         fontSize: 40, marginBottom: 12, fontWeight: 700, letterSpacing: -1,
@@ -91,18 +61,12 @@ export default async function HomePage({
       }}>
         Chroma
       </h1>
-      <p style={{ color: "var(--text-dim)", marginBottom: 32, fontSize: 15, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
+      <p style={{ color: "var(--text-dim)", marginBottom: 40, fontSize: 15, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
         Trend intelligence for scenes the big platforms track too late.
-        We watch the sound, not just the artist — before it has a name.
+        We index the sound, not just the artist — before it has a name.
       </p>
 
-      <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 14 }}>
-        <a href="/?range=today" style={rangeTabStyle(range === "today")}>Today</a>
-        <a href="/?range=week" style={rangeTabStyle(range === "week")}>This Week</a>
-        <a href="/?range=all" style={rangeTabStyle(range === "all")}>All Time</a>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 16 }}>
         {cards.map((c) => (
           <div key={c.label} className="card-hover" style={{
             background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px 16px",
@@ -113,18 +77,14 @@ export default async function HomePage({
         ))}
       </div>
 
-      <div style={{
-        background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12,
-        padding: "18px 20px", marginBottom: 32, textAlign: "left",
-      }}>
-        <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>Videos scraped, last 7 days</div>
-        <MiniBarChart data={activity} />
+      <div style={{ fontSize: 12, color: "var(--text-faint)", marginBottom: 40 }}>
+        Last collection run: <span style={{ color: "var(--text-dim)", fontWeight: 600 }}>{formatRelativeTime(latest?.last_collected_at ?? null)}</span>
       </div>
 
       <a href="/videos" style={{
         display: "inline-block", padding: "12px 28px",
         background: "linear-gradient(90deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
-        color: "#0a0a0a", borderRadius: 8, textDecoration: "none", fontWeight: 700, fontSize: 14,
+        color: "#fff", borderRadius: 8, textDecoration: "none", fontWeight: 700, fontSize: 14,
         fontFamily: "'Space Grotesk', sans-serif",
       }}>
         View Trending Now →

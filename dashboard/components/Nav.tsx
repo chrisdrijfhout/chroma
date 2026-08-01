@@ -9,7 +9,6 @@ const links = [
   { href: "/videos", label: "Trending Videos" },
   { href: "/creators", label: "Creators" },
   { href: "/sounds", label: "Sounds" },
-  { href: "/insights", label: "AI Insights" },
 ];
 
 const CLIENT_NAME = "Tribal Music Group";
@@ -48,8 +47,8 @@ export default async function Nav() {
           background: "linear-gradient(135deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontFamily: "'Space Grotesk', sans-serif",
-          fontWeight: 800, fontSize: 15, color: "#0a0a0a", flexShrink: 0,
-          boxShadow: "0 0 16px rgba(90,200,250,0.3)",
+          fontWeight: 800, fontSize: 15, color: "#fff", flexShrink: 0,
+          boxShadow: "0 0 16px rgba(139,124,246,0.25)",
         }}>
           C
         </div>
@@ -71,7 +70,7 @@ export default async function Nav() {
         display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-dim)",
         borderLeft: "1px solid var(--border)", paddingLeft: 16, marginRight: 24,
       }}>
-        <span style={{ color: "var(--text-faint)" }}>Last refresh:</span>
+        <span style={{ color: "var(--text-faint)" }}>Last collection:</span>
         <span style={{ color: "var(--text)", fontWeight: 600 }}>{formatRelativeTime(lastRunAt)}</span>
       </div>
 

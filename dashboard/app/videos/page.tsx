@@ -69,7 +69,7 @@ export default async function VideosPage({
     padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
     textDecoration: "none", cursor: "pointer",
     background: active ? "var(--accent)" : "var(--card)",
-    color: active ? "#0a0a0a" : "var(--text-dim)",
+    color: active ? "#fff" : "var(--text-dim)",
     border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
   });
 
@@ -88,7 +88,7 @@ export default async function VideosPage({
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <a href={buildUrl({ range: "latest" })} style={tabStyle(range === "latest")}>Latest Scrape</a>
+          <a href={buildUrl({ range: "latest" })} style={tabStyle(range === "latest")}>Just In</a>
           <a href={buildUrl({ range: "week" })} style={tabStyle(range === "week")}>This Week</a>
           <span style={{ width: 1, background: "var(--border)", margin: "0 4px" }} />
           <a href={producersOnly ? `/videos?range=${range}` : `/videos?range=${range}&only=producers`} style={tabStyle(producersOnly)}>
@@ -117,14 +117,14 @@ export default async function VideosPage({
           >
             <div style={{ position: "relative", aspectRatio: "9/16", background: "#000" }}>
               <SafeImage src={v.thumbnail_url} alt={v.caption ?? ""} />
-              <div style={{ position: "absolute", top: 8, left: 8, background: "var(--accent)", color: "#000", fontWeight: 700, fontSize: 11, borderRadius: 5, padding: "3px 7px" }}>
+              <div style={{ position: "absolute", top: 8, left: 8, background: "var(--accent)", color: "#fff", fontWeight: 700, fontSize: 11, borderRadius: 5, padding: "3px 7px" }}>
                 #{i + 1}
               </div>
               <div style={{ position: "absolute", top: 8, right: 8, background: "linear-gradient(135deg, #ff6b6b, #ffa94d)", color: "#0a0a0a", fontWeight: 700, fontSize: 10, borderRadius: 5, padding: "3px 6px" }}>
                 🔥 {v._velocity.toFixed(0)}/hr
               </div>
               {v.sounds?.is_original && (
-                <div style={{ position: "absolute", top: 30, right: 8, background: "var(--spectrum-1)", color: "#0a0a0a", fontWeight: 700, fontSize: 9, borderRadius: 5, padding: "2px 6px" }}>
+                <div style={{ position: "absolute", top: 30, right: 8, background: "var(--spectrum-1)", color: "#fff", fontWeight: 700, fontSize: 9, borderRadius: 5, padding: "2px 6px" }}>
                   ORIGINAL
                 </div>
               )}
@@ -145,7 +145,7 @@ export default async function VideosPage({
 
       {videos.length === 0 && !error && (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-faint)" }}>
-          {producersOnly ? "No original videos in this range yet." : "No data yet for this range."}
+          {producersOnly ? "No original videos in this range yet." : "No data collected in this range yet."}
         </div>
       )}
     </div>

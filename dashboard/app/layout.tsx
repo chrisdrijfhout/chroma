@@ -15,7 +15,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: the theme script sets data-theme on this
+    // tag before React hydrates. Without this, React can log (and in some
+    // cases fight) a mismatch since the server has no way to know the
+    // theme in advance.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -24,10 +28,8 @@ export default function RootLayout({
         />
         <ThemeScript />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <style>{`
-          /* Light is the true default — applies immediately from
-             server-rendered HTML, no JS required. Dark is the override. */
           :root {
             --bg: #f7f7f8;
             --bg-elevated: #ffffff;
