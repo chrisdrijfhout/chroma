@@ -1,123 +1,68 @@
-import { supabase } from "@/lib/supabaseClient";
-import MiniBarChart from "@/components/MiniBarChart";
+"use client";
+import { useState, useEffect } from "react";
 
-export const dynamic = 'force-dynamic';
+const COOLDOWN_MS = 60 * 60 * 1000;
 
-async function getStats(range: "today" | "week" | "all") {
-  let since: string | null = null;
-  if (range === "today") since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  if (range === "week") since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null }) {
+  const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [remaining, setRemaining] = useState<number | null>(null);
 
-  const videoQuery = supabase.from("videos").select("*", { count: "exact", head: true });
-  const creatorQuery = supabase.from("creators").select("*", { count: "exact", head: true });
-  const soundQuery = supabase.from("sounds").select("*", { count: "exact", head: true });
+  useEffect(() => {
+    if (!lastRunAt) return;
+    const tick = () => {
+      const elapsed = Date.now() - new Date(lastRunAt).getTime();
+      const left = COOLDOWN_MS - elapsed;
+      setRemaining(left > 0 ? left : 0);
+    };
+    tick();
+    const interval = setInterval(tick, 30_000);
+    return () => clearInterval(interval);
+  }, [lastRunAt]);
 
-  if (since) {
-    videoQuery.gte("last_collected_at", since);
-    creatorQuery.gte("last_seen_at", since);
-    soundQuery.gte("last_seen_at", since);
+  const onCooldown = remaining !== null && remaining > 0;
+
+  async function handleClick() {
+    if (onCooldown) return;
+    setState("loading");
+    try {
+      const res = await fetch("/api/refresh", { method: "POST" });
+      if (!res.ok) throw new Error("failed");
+      setState("done");
+      setTimeout(() => setState("idle"), 4000);
+    } catch {
+      setState("error");
+      setTimeout(() => setState("idle"), 4000);
+    }
   }
 
-  const [{ count: videoCount }, { count: creatorCount }, { count: soundCount }] = await Promise.all([
-    videoQuery, creatorQuery, soundQuery,
-  ]);
-
-  return {
-    videos: videoCount ?? 0,
-    creators: creatorCount ?? 0,
-    sounds: soundCount ?? 0,
-  };
-}
-
-async function getDailyActivity() {
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { data } = await supabase
-    .from("videos")
-    .select("last_collected_at")
-    .gte("last_collected_at", sevenDaysAgo);
-
-  const counts: Record<string, number> = {};
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-    const key = d.toLocaleDateString("en-US", { weekday: "short" });
-    counts[key] = 0;
+  function formatRemaining(ms: number) {
+    const mins = Math.floor(ms / (60 * 1000));
+    return mins > 0 ? `${mins}m` : "<1m";
   }
-  (data ?? []).forEach((row: any) => {
-    const key = new Date(row.last_collected_at).toLocaleDateString("en-US", { weekday: "short" });
-    if (key in counts) counts[key] += 1;
-  });
 
-  return Object.entries(counts).map(([label, value]) => ({ label, value }));
-}
-
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: { range?: string };
-}) {
-  const range = (["today", "week", "all"].includes(searchParams?.range ?? "") ? searchParams.range : "all") as "today" | "week" | "all";
-
-  const [stats, activity] = await Promise.all([getStats(range), getDailyActivity()]);
-
-  const cards = [
-    { label: "Videos Tracked", value: stats.videos },
-    { label: "Creators", value: stats.creators },
-    { label: "Sounds", value: stats.sounds },
-  ];
-
-  const rangeTabStyle = (active: boolean) => ({
-    padding: "4px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-    textDecoration: "none", cursor: "pointer",
-    background: active ? "#5ac8fa" : "transparent",
-    color: active ? "#0a0a0a" : "#8a8f98",
-    border: `1px solid ${active ? "#5ac8fa" : "#2a2d31"}`,
-  });
+  const label =
+    state === "loading" ? "Starting..." :
+    state === "done" ? "Started ✓" :
+    state === "error" ? "Failed — try again" :
+    onCooldown ? `Next refresh in ${formatRemaining(remaining!)}` :
+    "Refresh Data";
 
   return (
-    <div style={{ padding: "56px 24px", maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
-      <div style={{
-        display: "inline-block", fontSize: 11, color: "#5ac8fa", background: "#132025",
-        border: "1px solid #1e3a44", borderRadius: 20, padding: "4px 14px", marginBottom: 20,
-        letterSpacing: 0.5,
-      }}>
-        FIRST DEPLOYMENT · PHONK / TIKTOK
-      </div>
-      <h1 style={{ fontSize: 40, marginBottom: 12, fontWeight: 700, letterSpacing: -1 }}>Chroma</h1>
-      <p style={{ color: "#8a8f98", marginBottom: 32, fontSize: 15, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
-        Trend intelligence for scenes the big platforms track too late.
-        We watch the sound, not just the artist — before it has a name.
-      </p>
-
-      <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 14 }}>
-        <a href="/?range=today" style={rangeTabStyle(range === "today")}>Today</a>
-        <a href="/?range=week" style={rangeTabStyle(range === "week")}>This Week</a>
-        <a href="/?range=all" style={rangeTabStyle(range === "all")}>All Time</a>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 32 }}>
-        {cards.map((c) => (
-          <div key={c.label} style={{
-            background: "#111214", border: "1px solid #222427", borderRadius: 12, padding: "20px 16px",
-          }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: "#fff", marginBottom: 4 }}>{c.value}</div>
-            <div style={{ fontSize: 12, color: "#8a8f98" }}>{c.label}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{
-        background: "#111214", border: "1px solid #222427", borderRadius: 12, padding: "18px 20px", marginBottom: 32, textAlign: "left",
-      }}>
-        <div style={{ fontSize: 12, color: "#8a8f98", marginBottom: 12 }}>Videos scraped, last 7 days</div>
-        <MiniBarChart data={activity} />
-      </div>
-
-      <a href="/videos" style={{
-        display: "inline-block", padding: "12px 28px", background: "#5ac8fa",
-        color: "#000", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 14,
-      }}>
-        View Trending Now →
-      </a>
-    </div>
+    <button
+      onClick={handleClick}
+      disabled={state === "loading" || onCooldown}
+      title={onCooldown ? "Scraping is limited to once every hour to control cost" : undefined}
+      style={{
+        fontFamily: "inherit", fontSize: 12, fontWeight: 600,
+        color: onCooldown ? "var(--text-faint)" : "#fff",
+        background: onCooldown ? "var(--card)" : state === "error" ? "var(--danger)" : "var(--accent)",
+        border: onCooldown ? "1px solid var(--border)" : "none",
+        borderRadius: 6, padding: "7px 14px",
+        cursor: onCooldown || state === "loading" ? "not-allowed" : "pointer",
+        opacity: state === "loading" ? 0.7 : 1,
+      }}
+    >
+      {label}
+    </button>
   );
 }
