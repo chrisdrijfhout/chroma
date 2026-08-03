@@ -1,36 +1,26 @@
 "use client";
 import { useState, useEffect } from "react";
 
+function readThemeCookie(): "dark" | "light" {
+  if (typeof document === "undefined") return "light";
+  const match = document.cookie.match(/(?:^|; )chroma-theme=([^;]*)/);
+  return match && decodeURIComponent(match[1]) === "dark" ? "dark" : "light";
+}
+
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    if (typeof document !== "undefined") {
-      const current = document.documentElement.getAttribute("data-theme");
-      return current === "dark" ? "dark" : "light";
-    }
-    return "light";
-  });
+  const [theme, setTheme] = useState<"dark" | "light">(() => readThemeCookie());
 
-  // Backup sync: re-check the real attribute after mount, in case
-  // anything changed it between the lazy initializer and this point,
-  // and keep it in sync if another tab changes the theme too.
   useEffect(() => {
-    const syncFromDom = () => {
-      const current = document.documentElement.getAttribute("data-theme");
-      setTheme(current === "dark" ? "dark" : "light");
-    };
-    syncFromDom();
-
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "chroma-theme") syncFromDom();
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    setTheme(readThemeCookie());
   }, []);
 
   function toggle() {
     const next = theme === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
-    localStorage.setItem("chroma-theme", next);
+    // 1 year expiry, available on every path — cookies aren't subject to
+    // the same Safari storage restrictions localStorage runs into on
+    // shared hosting domains like vercel.app.
+    document.cookie = `chroma-theme=${next}; path=/; max-age=31536000; SameSite=Lax`;
     setTheme(next);
   }
 
