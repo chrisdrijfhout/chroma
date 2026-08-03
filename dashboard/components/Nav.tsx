@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import RefreshButton from "./RefreshButton";
 import ThemeToggle from "./ThemeToggle";
 import { supabase } from "@/lib/supabaseClient";
@@ -26,6 +27,9 @@ function formatRelativeTime(iso: string | null) {
 }
 
 export default async function Nav() {
+  const cookieStore = cookies();
+  const theme = cookieStore.get("chroma-theme")?.value === "dark" ? "dark" : "light";
+
   const { data: latest } = await supabase
     .from("videos")
     .select("last_collected_at")
@@ -84,7 +88,7 @@ export default async function Nav() {
       ))}
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
         <RefreshButton lastRunAt={lastRunAt} />
-        <ThemeToggle />
+        <ThemeToggle initialTheme={theme} />
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-faint)" }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
           Live

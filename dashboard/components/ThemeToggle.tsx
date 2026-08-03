@@ -1,25 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-function readThemeCookie(): "dark" | "light" {
-  if (typeof document === "undefined") return "light";
-  const match = document.cookie.match(/(?:^|; )chroma-theme=([^;]*)/);
-  return match && decodeURIComponent(match[1]) === "dark" ? "dark" : "light";
-}
-
-export default function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">(() => readThemeCookie());
-
-  useEffect(() => {
-    setTheme(readThemeCookie());
-  }, []);
+export default function ThemeToggle({ initialTheme }: { initialTheme: "dark" | "light" }) {
+  const [theme, setTheme] = useState<"dark" | "light">(initialTheme);
 
   function toggle() {
     const next = theme === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
-    // 1 year expiry, available on every path — cookies aren't subject to
-    // the same Safari storage restrictions localStorage runs into on
-    // shared hosting domains like vercel.app.
     document.cookie = `chroma-theme=${next}; path=/; max-age=31536000; SameSite=Lax`;
     setTheme(next);
   }

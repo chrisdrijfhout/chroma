@@ -1,5 +1,5 @@
+import { cookies } from "next/headers";
 import Nav from "@/components/Nav";
-import ThemeScript from "@/components/ThemeScript";
 
 export const metadata = {
   title: "Chroma",
@@ -14,19 +14,21 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Read the theme cookie on the SERVER, before any HTML is sent — the
+  // <html> tag gets the correct data-theme attribute from the very first
+  // byte. No client script race, no flash, no timing gap for Safari (or
+  // anything else) to lose.
+  const cookieStore = cookies();
+  const theme = cookieStore.get("chroma-theme")?.value === "dark" ? "dark" : "light";
+
   return (
-    // suppressHydrationWarning: the theme script sets data-theme on this
-    // tag before React hydrates. Without this, React can log (and in some
-    // cases fight) a mismatch since the server has no way to know the
-    // theme in advance.
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-theme={theme} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
-        <ThemeScript />
       </head>
       <body suppressHydrationWarning>
         <style>{`
