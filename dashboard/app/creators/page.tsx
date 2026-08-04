@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
 export const dynamic = 'force-dynamic';
@@ -38,7 +39,7 @@ export default async function CreatorsPage({
     padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
     textDecoration: "none", cursor: "pointer",
     background: active ? "var(--accent)" : "var(--card)",
-    color: active ? "#0a0a0a" : "var(--text-dim)",
+    color: active ? "#fff" : "var(--text-dim)",
     border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
   });
 
@@ -50,9 +51,9 @@ export default async function CreatorsPage({
           <p style={{ color: "var(--text-dim)", fontSize: 13 }}>Ranked by total likes across tracked videos</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <a href="/creators?range=latest" style={tabStyle(range === "latest")}>Latest</a>
-          <a href="/creators?range=week" style={tabStyle(range === "week")}>This Week</a>
-          <a href="/creators?range=all" style={tabStyle(range === "all")}>All Time</a>
+          <Link href="/creators?range=latest" style={tabStyle(range === "latest")}>Latest</Link>
+          <Link href="/creators?range=week" style={tabStyle(range === "week")}>This Week</Link>
+          <Link href="/creators?range=all" style={tabStyle(range === "all")}>All Time</Link>
         </div>
       </div>
 
@@ -79,7 +80,7 @@ export default async function CreatorsPage({
               width: 32, height: 32, borderRadius: 8,
               background: "linear-gradient(135deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
               color: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 13, fontWeight: 800, flexShrink: 0, fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: 13, fontWeight: 800, flexShrink: 0, fontFamily: "var(--font-display), sans-serif",
             }}>
               {c.tiktok_username?.[0]?.toUpperCase() ?? "?"}
             </div>

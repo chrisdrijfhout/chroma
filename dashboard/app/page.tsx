@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
 export const dynamic = 'force-dynamic';
@@ -73,7 +74,7 @@ export default async function HomePage() {
           <div key={c.label} className="card-hover" style={{
             background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px 16px",
           }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text)", marginBottom: 4, fontFamily: "'Space Grotesk', sans-serif" }}>{c.value}</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text)", marginBottom: 4, fontFamily: "var(--font-display), sans-serif" }}>{c.value}</div>
             <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{c.label}</div>
           </div>
         ))}
@@ -83,14 +84,14 @@ export default async function HomePage() {
         Last collection run: <span style={{ color: "var(--text-dim)", fontWeight: 600 }}>{formatRelativeTime(latest?.last_collected_at ?? null)}</span>
       </div>
 
-      <a href="/videos" style={{
+      <Link href="/videos" style={{
         display: "inline-block", padding: "12px 28px",
         background: "linear-gradient(90deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
         color: "#fff", borderRadius: 8, textDecoration: "none", fontWeight: 700, fontSize: 14,
-        fontFamily: "'Space Grotesk', sans-serif",
+        fontFamily: "var(--font-display), sans-serif",
       }}>
         View Trending Now →
-      </a>
+      </Link>
     </div>
   );
 }

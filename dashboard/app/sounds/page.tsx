@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
 export const dynamic = 'force-dynamic';
@@ -39,7 +40,7 @@ export default async function SoundsPage({
     padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
     textDecoration: "none", cursor: "pointer",
     background: active ? "var(--accent)" : "var(--card)",
-    color: active ? "#0a0a0a" : "var(--text-dim)",
+    color: active ? "#fff" : "var(--text-dim)",
     border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
   });
 
@@ -51,9 +52,9 @@ export default async function SoundsPage({
           <p style={{ color: "var(--text-dim)", fontSize: 13 }}>Ranked by unique creators — the real early signal</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <a href="/sounds?range=latest" style={tabStyle(range === "latest")}>Latest</a>
-          <a href="/sounds?range=week" style={tabStyle(range === "week")}>This Week</a>
-          <a href="/sounds?range=all" style={tabStyle(range === "all")}>All Time</a>
+          <Link href="/sounds?range=latest" style={tabStyle(range === "latest")}>Latest</Link>
+          <Link href="/sounds?range=week" style={tabStyle(range === "week")}>This Week</Link>
+          <Link href="/sounds?range=all" style={tabStyle(range === "all")}>All Time</Link>
         </div>
       </div>
 

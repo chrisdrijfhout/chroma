@@ -1,6 +1,20 @@
 import { cookies } from "next/headers";
+import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import Nav from "@/components/Nav";
 import MinimalNav from "@/components/MinimalNav";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-display",
+  display: "swap",
+});
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-body",
+  display: "swap",
+});
 
 export const metadata = {
   title: "Chroma",
@@ -21,14 +35,7 @@ export default function RootLayout({
   const isLoggedIn = cookieStore.get("chroma-session")?.value === "true";
 
   return (
-    <html lang="en" data-theme={theme} suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" data-theme={theme} suppressHydrationWarning className={`${spaceGrotesk.variable} ${plexMono.variable}`}>
       <body suppressHydrationWarning>
         <style>{`
           :root {
@@ -69,13 +76,13 @@ export default function RootLayout({
           * { box-sizing: border-box; }
           html, body {
             margin: 0; min-height: 100vh; color: var(--text);
-            font-family: 'IBM Plex Mono', monospace;
+            font-family: var(--font-body), monospace;
             background: var(--bg);
             background-image: radial-gradient(circle at 20% 0%, var(--bg-elevated) 0%, var(--bg) 45%, var(--bg) 100%);
             background-attachment: fixed;
             overflow-x: hidden;
           }
-          h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+          h1, h2, h3 { font-family: var(--font-display), sans-serif; }
 
           a { transition: opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.15s ease; }
 

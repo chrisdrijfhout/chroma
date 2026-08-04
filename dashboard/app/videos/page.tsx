@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import SafeImage from "@/components/SafeImage";
 
@@ -88,12 +89,12 @@ export default async function VideosPage({
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <a href={buildUrl({ range: "latest" })} style={tabStyle(range === "latest")}>Just In</a>
-          <a href={buildUrl({ range: "week" })} style={tabStyle(range === "week")}>This Week</a>
+          <Link href={buildUrl({ range: "latest" })} style={tabStyle(range === "latest")}>Just In</Link>
+          <Link href={buildUrl({ range: "week" })} style={tabStyle(range === "week")}>This Week</Link>
           <span style={{ width: 1, background: "var(--border)", margin: "0 4px" }} />
-          <a href={producersOnly ? `/videos?range=${range}` : `/videos?range=${range}&only=producers`} style={tabStyle(producersOnly)}>
+          <Link href={producersOnly ? `/videos?range=${range}` : `/videos?range=${range}&only=producers`} style={tabStyle(producersOnly)}>
             🎹 Producers Only
-          </a>
+          </Link>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import RefreshButton from "./RefreshButton";
 import ThemeToggle from "./ThemeToggle";
 
@@ -17,6 +18,8 @@ type InsightData = {
   producers: { creator: string; note: string }[];
   spreading_sounds: { sound: string; note: string }[];
   recommendation: string;
+  week_comparison?: string;
+  standout_day?: string;
 };
 
 function parseInsight(raw: string | null): InsightData | null {
@@ -24,8 +27,6 @@ function parseInsight(raw: string | null): InsightData | null {
   try {
     return JSON.parse(raw);
   } catch {
-    // Old-format plain text report from before the JSON switch — still
-    // show something rather than nothing.
     return {
       headline: "",
       fastest_moving: raw,
@@ -61,12 +62,12 @@ export default function NavClient({
         borderBottom: "1px solid var(--border)", background: "var(--bg)",
         position: "sticky", top: 0, zIndex: 20, backdropFilter: "blur(8px)",
       }}>
-        <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 12, textDecoration: "none", flexShrink: 0 }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 12, textDecoration: "none", flexShrink: 0 }}>
           <div style={{
             width: 30, height: 30, borderRadius: 8,
             background: "linear-gradient(135deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontFamily: "'Space Grotesk', sans-serif",
+            fontFamily: "var(--font-display), sans-serif",
             fontWeight: 800, fontSize: 15, color: "#fff", flexShrink: 0,
             boxShadow: "0 0 16px rgba(139,124,246,0.25)",
           }}>
@@ -74,7 +75,7 @@ export default function NavClient({
           </div>
           <div className="nav-brand-text" style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
             <span style={{
-              fontFamily: "'Space Grotesk', sans-serif",
+              fontFamily: "var(--font-display), sans-serif",
               fontWeight: 700, letterSpacing: 0.5, fontSize: 15,
               background: "linear-gradient(90deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
@@ -84,7 +85,7 @@ export default function NavClient({
             </span>
             <span style={{ fontSize: 10, color: "var(--text-faint)" }}>× {CLIENT_NAME}</span>
           </div>
-        </a>
+        </Link>
 
         <div className="nav-last-collected" style={{
           display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-dim)",
@@ -96,12 +97,12 @@ export default function NavClient({
 
         <div className="nav-links-desktop" style={{ display: "flex", gap: 4 }}>
           {links.map((l) => (
-            <a key={l.href} href={l.href} className="nav-link" style={{
+            <Link key={l.href} href={l.href} className="nav-link" style={{
               color: "var(--text-dim)", textDecoration: "none", fontSize: 13,
               padding: "7px 14px", borderRadius: 6, fontWeight: 500, whiteSpace: "nowrap",
             }}>
               {l.label}
-            </a>
+            </Link>
           ))}
         </div>
 
@@ -144,12 +145,12 @@ export default function NavClient({
           position: "sticky", top: 58, zIndex: 19, gap: 4,
         }}>
           {links.map((l) => (
-            <a key={l.href} href={l.href} style={{
+            <Link key={l.href} href={l.href} onClick={() => setMenuOpen(false)} style={{
               color: "var(--text)", textDecoration: "none", fontSize: 14,
               padding: "10px 12px", borderRadius: 6, fontWeight: 500, background: "var(--card)",
             }}>
               {l.label}
-            </a>
+            </Link>
           ))}
           <div style={{ padding: "10px 12px" }}>
             <RefreshButton lastRunAt={lastRunAt} />
@@ -179,7 +180,7 @@ export default function NavClient({
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 18 }}>✨</span>
-                <h2 style={{ fontSize: 15, margin: 0, fontFamily: "'Space Grotesk', sans-serif", color: "var(--text)" }}>AI Weekly Brief</h2>
+                <h2 style={{ fontSize: 15, margin: 0, fontFamily: "var(--font-display), sans-serif", color: "var(--text)" }}>AI Weekly Brief</h2>
               </div>
               <button
                 onClick={() => setInsightOpen(false)}
@@ -201,11 +202,36 @@ export default function NavClient({
 
                   {insight.headline && (
                     <div style={{
-                      fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 20,
-                      fontFamily: "'Space Grotesk', sans-serif", lineHeight: 1.4,
+                      fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 12,
+                      fontFamily: "var(--font-display), sans-serif", lineHeight: 1.4,
                       paddingLeft: 12, borderLeft: "3px solid var(--accent)",
                     }}>
                       {insight.headline}
+                    </div>
+                  )}
+
+                  {(insight.week_comparison || insight.standout_day) && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
+                      {insight.week_comparison && (
+                        <div style={{
+                          display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12,
+                          color: "var(--text-dim)", background: "var(--card)",
+                          border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px",
+                        }}>
+                          <span style={{ flexShrink: 0 }}>📊</span>
+                          <span>{insight.week_comparison}</span>
+                        </div>
+                      )}
+                      {insight.standout_day && (
+                        <div style={{
+                          display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12,
+                          color: "var(--text-dim)", background: "var(--card)",
+                          border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px",
+                        }}>
+                          <span style={{ flexShrink: 0 }}>📅</span>
+                          <span>{insight.standout_day}</span>
+                        </div>
+                      )}
                     </div>
                   )}
 
