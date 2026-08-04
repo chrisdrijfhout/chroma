@@ -1,18 +1,16 @@
 """
-Refreshes popularity/follower stats for tracks and artists already known
-in label_playlist_tracks. Uses GET /tracks and GET /artists — general
-metadata endpoints that remain open via Client Credentials even after
-Spotify's Feb 2026 restriction on reading third-party playlist contents.
-The track/artist LIST itself has to be seeded/updated manually (see
-fetch_spotify_playlist.py comments) — this script only refreshes stats
-for what's already in the table.
+Refreshes popularity/follower stats for tracks/artists already known in
+label_playlist_tracks, and appends a daily snapshot to
+label_track_popularity_history so trend/change over time can be shown,
+not just a current number.
 """
 import os
+from datetime import date
 import requests
-from datetime import datetime, timezone
 from supabase import create_client
 
 sb = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
+TODAY = date.today().isoformat()
 
 
 def get_access_token():
@@ -35,7 +33,7 @@ def update_track_popularity(token):
     track_ids = [r["spotify_track_id"] for r in rows if r.get("spotify_track_id")]
     headers = {"Authorization": f"Bearer {token}"}
 
-    for batch in chunk(track_ids, 50):  # Spotify allows up to 50 IDs per call
+    for batch in chunk(track_ids, 50):
         resp = requests.get(
             "https://api.spotify.com/v1/tracks",
             headers=headers,
@@ -50,7 +48,14 @@ def update_track_popularity(token):
             sb.table("label_playlist_tracks").update({
                 "popularity": track.get("popularity"),
             }).eq("spotify_track_id", track["id"]).execute()
-    print(f"Updated popularity for {len(track_ids)} tracks")
+            # Append to history — upsert on (track_id, date) so re-running
+            # the same day doesn't create duplicate snapshots.
+            sb.table("label_track_popularity_history").upsert({
+                "spotify_track_id": track["id"],
+                "popularity": track.get("popularity"),
+                "snapshot_date": TODAY,
+            }, on_conflict="spotify_track_id,snapshot_date").execute()
+    print(f"Updated popularity + history for {len(track_ids)} tracks")
 
 
 def update_artist_stats(token):
@@ -61,7 +66,6 @@ def update_artist_stats(token):
         all_artist_ids.update(a.strip() for a in ids if a.strip())
 
     headers = {"Authorization": f"Bearer {token}"}
-    now_iso = datetime.now(timezone.utc).isoformat()
 
     for batch in chunk(list(all_artist_ids), 50):
         resp = requests.get(
@@ -80,7 +84,6 @@ def update_artist_stats(token):
                 "artist_name": artist.get("name"),
                 "followers": artist.get("followers", {}).get("total"),
                 "popularity": artist.get("popularity"),
-                "last_updated_at": now_iso,
             }, on_conflict="spotify_artist_id").execute()
     print(f"Updated stats for {len(all_artist_ids)} artists")
 
