@@ -190,8 +190,10 @@ Respond with ONLY valid JSON (no markdown, no code fences, no commentary outside
 Include 2-4 items in "producers" and up to 4 in "spreading_sounds", only the genuinely notable ones. Be specific and concrete, reference actual names, numbers, and dates. Don't force a week_comparison or standout_day if there's nothing genuinely notable to say — empty string is a valid, honest answer. No filler, no hedging. Valid JSON only."""
 
     msg = claude.messages.create(
-        model="claude-sonnet-5",
-        max_tokens=1400,
+        model="claude-haiku-4-5-20251001",  # cheaper model — this task is
+        # formatting/light judgment on data Python already computed, not
+        # heavy reasoning, so the flagship model was overkill here
+        max_tokens=2048,
         messages=[{"role": "user", "content": prompt}],
     )
     # Find the actual text block rather than assuming content[0] — the
