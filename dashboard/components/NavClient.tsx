@@ -11,6 +11,31 @@ const links = [
 
 const CLIENT_NAME = "Tribal Music Group";
 
+type InsightData = {
+  headline: string;
+  fastest_moving: string;
+  producers: { creator: string; note: string }[];
+  spreading_sounds: { sound: string; note: string }[];
+  recommendation: string;
+};
+
+function parseInsight(raw: string | null): InsightData | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    // Old-format plain text report from before the JSON switch — still
+    // show something rather than nothing.
+    return {
+      headline: "",
+      fastest_moving: raw,
+      producers: [],
+      spreading_sounds: [],
+      recommendation: "",
+    };
+  }
+}
+
 export default function NavClient({
   lastCollectedText,
   theme,
@@ -26,6 +51,8 @@ export default function NavClient({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [insightOpen, setInsightOpen] = useState(false);
+
+  const insight = parseInsight(insightSummary);
 
   return (
     <>
@@ -140,15 +167,19 @@ export default function NavClient({
             }}
           />
           <div style={{
-            position: "fixed", top: 0, right: 0, bottom: 0, width: "min(420px, 100vw)",
+            position: "fixed", top: 0, right: 0, bottom: 0, width: "min(440px, 100vw)",
             background: "var(--bg-elevated)", borderLeft: "1px solid var(--border)",
-            zIndex: 31, padding: 24, overflowY: "auto",
+            zIndex: 31, overflowY: "auto",
             animation: "slideIn 0.25s cubic-bezier(0.16,1,0.3,1)",
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <div style={{
+              position: "sticky", top: 0, background: "var(--bg-elevated)",
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              padding: "20px 24px 16px", borderBottom: "1px solid var(--border)",
+            }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 18 }}>✨</span>
-                <h2 style={{ fontSize: 16, margin: 0, fontFamily: "'Space Grotesk', sans-serif", color: "var(--text)" }}>AI Weekly Brief</h2>
+                <h2 style={{ fontSize: 15, margin: 0, fontFamily: "'Space Grotesk', sans-serif", color: "var(--text)" }}>AI Weekly Brief</h2>
               </div>
               <button
                 onClick={() => setInsightOpen(false)}
@@ -161,22 +192,88 @@ export default function NavClient({
               </button>
             </div>
 
-            {insightSummary ? (
-              <>
-                <div style={{ fontSize: 12, color: "var(--text-faint)", marginBottom: 16 }}>{insightPeriod}</div>
-                <div style={{ fontSize: 14, lineHeight: 1.7, color: "var(--text)", whiteSpace: "pre-wrap" }}>
-                  {insightSummary}
+            <div style={{ padding: "20px 24px 32px" }}>
+              {insight && insight.fastest_moving ? (
+                <>
+                  {insightPeriod && (
+                    <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 16 }}>{insightPeriod}</div>
+                  )}
+
+                  {insight.headline && (
+                    <div style={{
+                      fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 20,
+                      fontFamily: "'Space Grotesk', sans-serif", lineHeight: 1.4,
+                      paddingLeft: 12, borderLeft: "3px solid var(--accent)",
+                    }}>
+                      {insight.headline}
+                    </div>
+                  )}
+
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "var(--spectrum-2)", letterSpacing: 0.5, marginBottom: 8, textTransform: "uppercase" }}>
+                      Fastest Moving
+                    </div>
+                    <div style={{ fontSize: 13, lineHeight: 1.7, color: "var(--text-dim)" }}>
+                      {insight.fastest_moving}
+                    </div>
+                  </div>
+
+                  {insight.producers?.length > 0 && (
+                    <div style={{ marginBottom: 24 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--spectrum-2)", letterSpacing: 0.5, marginBottom: 8, textTransform: "uppercase" }}>
+                        Producers Worth A Listen
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {insight.producers.map((p, i) => (
+                          <div key={i} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px" }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 3 }}>@{p.creator}</div>
+                            <div style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.5 }}>{p.note}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {insight.spreading_sounds?.length > 0 && (
+                    <div style={{ marginBottom: 24 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--spectrum-2)", letterSpacing: 0.5, marginBottom: 8, textTransform: "uppercase" }}>
+                        Sounds Gaining Spread
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {insight.spreading_sounds.map((s, i) => (
+                          <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, padding: "8px 0", borderBottom: i < insight.spreading_sounds.length - 1 ? "1px solid var(--border)" : "none" }}>
+                            <span style={{ color: "var(--text)", fontWeight: 600 }}>{s.sound}</span>
+                            <span style={{ color: "var(--text-dim)", textAlign: "right" }}>{s.note}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {insight.recommendation && (
+                    <div style={{
+                      background: "linear-gradient(135deg, rgba(139,124,246,0.1), rgba(108,92,231,0.05))",
+                      border: "1px solid var(--border-light)", borderRadius: 10, padding: 14,
+                    }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", letterSpacing: 0.5, marginBottom: 6, textTransform: "uppercase" }}>
+                        Recommendation
+                      </div>
+                      <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text)", fontWeight: 500 }}>
+                        {insight.recommendation}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{
+                  background: "var(--card)", border: "1px dashed var(--border-light)", borderRadius: 12,
+                  padding: 32, textAlign: "center", color: "var(--text-faint)",
+                }}>
+                  <div style={{ fontSize: 13, marginBottom: 6 }}>No brief generated yet</div>
+                  <div style={{ fontSize: 12 }}>Runs automatically once a week, once there&apos;s enough trend history to summarize.</div>
                 </div>
-              </>
-            ) : (
-              <div style={{
-                background: "var(--card)", border: "1px dashed var(--border-light)", borderRadius: 12,
-                padding: 32, textAlign: "center", color: "var(--text-faint)",
-              }}>
-                <div style={{ fontSize: 13, marginBottom: 6 }}>No brief generated yet</div>
-                <div style={{ fontSize: 12 }}>Runs automatically once a week, once there&apos;s enough trend history to summarize.</div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </>
       )}
