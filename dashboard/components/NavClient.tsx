@@ -10,8 +10,6 @@ const links = [
   { href: "/sounds", label: "Sounds" },
 ];
 
-const CLIENT_NAME = "Tribal Music Group";
-
 type InsightData = {
   headline: string;
   fastest_moving: string;
@@ -83,7 +81,6 @@ export default function NavClient({
             }}>
               CHROMA
             </span>
-            <span style={{ fontSize: 10, color: "var(--text-faint)" }}>× {CLIENT_NAME}</span>
           </div>
         </Link>
 
