@@ -1,8 +1,3 @@
-"""
-Pulls tracks from a Spotify playlist (e.g. a label's official curation
-playlist) using the Client Credentials flow — no user login needed since
-this only reads public playlist data.
-"""
 import os
 import requests
 from datetime import datetime, timezone
@@ -10,7 +5,7 @@ from supabase import create_client
 
 sb = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
 
-PLAYLIST_ID = "1u9WM7cJGDxk8sRNl1S7CM"  # Tribal Trap — BRAZILIAN PHONK 🇧🇷
+PLAYLIST_ID = "1u9WM7cJGDxk8sRNl1S7CM"
 
 
 def get_access_token():
@@ -31,11 +26,13 @@ def fetch_all_tracks(token):
 
     while url:
         resp = requests.get(url, headers=headers, params=params)
+        if not resp.ok:
+            print(f"Spotify API error {resp.status_code}: {resp.text}")
         resp.raise_for_status()
         data = resp.json()
         tracks.extend(data.get("items", []))
         url = data.get("next")
-        params = None  # 'next' already includes query params
+        params = None
     return tracks
 
 
@@ -58,6 +55,7 @@ def upsert_track(item):
 
 def main():
     token = get_access_token()
+    print("Got access token successfully")
     tracks = fetch_all_tracks(token)
     print(f"Fetched {len(tracks)} tracks from playlist")
 
