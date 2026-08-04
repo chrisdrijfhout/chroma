@@ -1,4 +1,5 @@
 import os, json
+from collections import defaultdict
 from datetime import date, timedelta, datetime, timezone
 from supabase import create_client
 import anthropic
@@ -28,7 +29,7 @@ def looks_like_edit(sound_name):
 
 def gather_week_data():
     videos = sb.table("videos").select(
-        "id, caption, video_url, published_at, like_count_snapshot, "
+        "id, caption, video_url, published_at, like_count_snapshot, last_collected_at, "
         "creators(tiktok_username), sounds(sound_name, is_original, original_artist)"
     ).gte("last_collected_at", SEVEN_DAYS_AGO).limit(300).execute().data or []
 
@@ -70,6 +71,24 @@ def gather_week_data():
     for s in top_sounds:
         del s["creators"]
 
+    # Per-day breakdown, based on when each video was actually collected —
+    # lets the model spot a standout day within the week, not just the
+    # week as a whole.
+    by_day = defaultdict(lambda: {"video_count": 0, "max_velocity": 0, "max_velocity_creator": None})
+    for v in videos:
+        collected = v.get("last_collected_at")
+        if not collected:
+            continue
+        day_key = collected[:10]  # YYYY-MM-DD
+        by_day[day_key]["video_count"] += 1
+        if v["_velocity"] > by_day[day_key]["max_velocity"]:
+            by_day[day_key]["max_velocity"] = round(v["_velocity"])
+            by_day[day_key]["max_velocity_creator"] = (v.get("creators") or {}).get("tiktok_username")
+
+    daily_breakdown = [
+        {"date": d, **stats} for d, stats in sorted(by_day.items())
+    ]
+
     return {
         "total_videos_tracked": len(videos),
         "top_videos_by_velocity": [
@@ -93,7 +112,30 @@ def gather_week_data():
             for v in top_original
         ],
         "top_spreading_sounds": top_sounds,
+        "daily_breakdown": daily_breakdown,
     }
+
+
+def get_previous_week_summary():
+    """Pull last week's stored report (if any) so this week's report can
+    reference whether things are heating up, cooling down, or steady."""
+    cutoff = (date.today() - timedelta(days=8)).isoformat()
+    result = sb.table("insights").select("summary, period_start, period_end") \
+        .eq("report_type", "weekly") \
+        .lt("period_end", date.today().isoformat()) \
+        .order("period_end", desc=True).limit(1).execute()
+    rows = result.data or []
+    if not rows:
+        return None
+    try:
+        parsed = json.loads(rows[0]["summary"])
+        return {
+            "period": f"{rows[0]['period_start']} to {rows[0]['period_end']}",
+            "headline": parsed.get("headline"),
+            "top_producers_last_week": [p.get("creator") for p in parsed.get("producers", [])],
+        }
+    except Exception:
+        return None
 
 
 EMPTY_REPORT = {
@@ -102,12 +144,20 @@ EMPTY_REPORT = {
     "producers": [],
     "spreading_sounds": [],
     "recommendation": "",
+    "week_comparison": "",
+    "standout_day": "",
 }
 
 
-def generate_report(data):
+def generate_report(data, previous_week):
     if data["total_videos_tracked"] == 0:
         return EMPTY_REPORT
+
+    prev_context = (
+        f"\n\nLast week's report for comparison:\n{json.dumps(previous_week, indent=2)}"
+        if previous_week else
+        "\n\nNo prior week's report exists yet — this is the first one, so skip week-over-week comparison."
+    )
 
     prompt = f"""You are an A&R analyst producing a weekly brief for Tribal Music Group, covering the phonk scene on TikTok.
 
@@ -115,9 +165,11 @@ Context on what this data means:
 - "likes_per_hour" measures how fast a video is accelerating right now — a smaller video with high likes_per_hour is often a stronger early signal than an older video with more total likes.
 - "top_original_unreleased_candidates" are videos using a sound the creator made themselves, filtered to exclude common edit/remix patterns. These are the closest thing to genuinely unreleased, unsigned work.
 - "top_spreading_sounds" ranks by how many DIFFERENT creators are using a sound — a sound spreading across many accounts is an early-movement signal.
+- "daily_breakdown" shows per-day activity within this week — use it to spot if one specific day had unusually high velocity or volume compared to the rest of the week.
 
-Data from the last 7 days:
+This week's data:
 {json.dumps(data, indent=2, default=str)}
+{prev_context}
 
 Respond with ONLY valid JSON (no markdown, no code fences, no commentary outside the JSON) matching exactly this shape:
 
@@ -130,24 +182,31 @@ Respond with ONLY valid JSON (no markdown, no code fences, no commentary outside
   "spreading_sounds": [
     {{"sound": "sound name", "note": "1 sentence on the spread signal, e.g. creator count"}}
   ],
-  "recommendation": "1-3 sentences — the single most actionable thing to do this week"
+  "recommendation": "1-3 sentences — the single most actionable thing to do this week",
+  "week_comparison": "1-2 sentences comparing this week to last week's report — busier, quieter, same names resurfacing, or a genuinely new signal. Leave as an empty string if no prior week exists to compare against.",
+  "standout_day": "1 sentence flagging a specific day from daily_breakdown if one clearly stood out (e.g. unusually high peak velocity or video count that day), naming the date and why. Leave as an empty string if no single day clearly stood out from the rest."
 }}
 
-Include 2-4 items in "producers" and up to 4 in "spreading_sounds", only the genuinely notable ones. Be specific and concrete, reference actual names and numbers. No filler, no hedging. Valid JSON only."""
+Include 2-4 items in "producers" and up to 4 in "spreading_sounds", only the genuinely notable ones. Be specific and concrete, reference actual names, numbers, and dates. Don't force a week_comparison or standout_day if there's nothing genuinely notable to say — empty string is a valid, honest answer. No filler, no hedging. Valid JSON only."""
 
     msg = claude.messages.create(
         model="claude-sonnet-5",
-        max_tokens=1200,
+        max_tokens=1400,
         messages=[{"role": "user", "content": prompt}],
     )
-    raw = msg.content[0].text.strip()
-    # Defensive: strip accidental code fences if the model adds them anyway
+    # Find the actual text block rather than assuming content[0] — the
+    # response can include a thinking block before the text block.
+    text_blocks = [b.text for b in msg.content if b.type == "text"]
+    raw = "".join(text_blocks).strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
             raw = raw[4:]
     try:
-        return json.loads(raw)
+        parsed = json.loads(raw)
+        for key in EMPTY_REPORT:
+            parsed.setdefault(key, EMPTY_REPORT[key])
+        return parsed
     except Exception as e:
         print(f"Failed to parse model output as JSON: {e}")
         return {**EMPTY_REPORT, "headline": "Report generation error", "fastest_moving": raw[:1000]}
@@ -155,7 +214,8 @@ Include 2-4 items in "producers" and up to 4 in "spreading_sounds", only the gen
 
 def main():
     data = gather_week_data()
-    report = generate_report(data)
+    previous_week = get_previous_week_summary()
+    report = generate_report(data, previous_week)
 
     sb.table("insights").insert({
         "report_type": "weekly",
@@ -166,6 +226,7 @@ def main():
     }).execute()
     print("Weekly insight generated")
     print(f"Based on {data['total_videos_tracked']} videos tracked this week")
+    print(f"Previous week found for comparison: {previous_week is not None}")
 
 
 if __name__ == "__main__":
