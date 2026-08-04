@@ -10,6 +10,7 @@ const links = [
   { href: "/videos", label: "Trending Videos" },
   { href: "/creators", label: "Creators" },
   { href: "/sounds", label: "Sounds" },
+  { href: "/catalog", label: "Label Catalog" },
 ];
 
 type InsightData = {
