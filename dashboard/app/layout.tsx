@@ -7,6 +7,7 @@ export const metadata = {
   icons: {
     icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23c4c4d0'/%3E%3Cstop offset='55%25' stop-color='%23a78bfa'/%3E%3Cstop offset='100%25' stop-color='%236c5ce7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='23' font-family='Arial' font-weight='800' font-size='18' fill='%230a0a0a' text-anchor='middle'%3EC%3C/text%3E%3C/svg%3E",
   },
+  viewport: "width=device-width, initial-scale=1",
 };
 
 export default function RootLayout({
@@ -14,10 +15,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Read the theme cookie on the SERVER, before any HTML is sent — the
-  // <html> tag gets the correct data-theme attribute from the very first
-  // byte. No client script race, no flash, no timing gap for Safari (or
-  // anything else) to lose.
   const cookieStore = cookies();
   const theme = cookieStore.get("chroma-theme")?.value === "dark" ? "dark" : "light";
 
@@ -74,6 +71,7 @@ export default function RootLayout({
             background: var(--bg);
             background-image: radial-gradient(circle at 20% 0%, var(--bg-elevated) 0%, var(--bg) 45%, var(--bg) 100%);
             background-attachment: fixed;
+            overflow-x: hidden;
           }
           h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
 
@@ -93,6 +91,9 @@ export default function RootLayout({
             from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
           }
+          @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
           .card-hover:nth-child(1) { animation-delay: 0.02s; }
           .card-hover:nth-child(2) { animation-delay: 0.05s; }
           .card-hover:nth-child(3) { animation-delay: 0.08s; }
@@ -111,6 +112,22 @@ export default function RootLayout({
           ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
 
           ::selection { background: var(--spectrum-2); color: #fff; }
+
+          /* --- Responsive nav --- */
+          .nav-hamburger { display: none; }
+          @media (max-width: 780px) {
+            .nav-last-collected { display: none !important; }
+            .nav-links-desktop { display: none !important; }
+            .nav-refresh-desktop { display: none !important; }
+            .ai-insight-btn-text { display: none; }
+            .ai-insight-btn { padding: 7px 9px !important; }
+            .nav-hamburger { display: flex !important; }
+            .nav-mobile-menu { display: flex !important; }
+            .nav-brand-text span:last-child { display: none; }
+          }
+          @media (max-width: 480px) {
+            .nav-brand-text { display: none !important; }
+          }
         `}</style>
         <Nav />
         {children}
