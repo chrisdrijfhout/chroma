@@ -4,6 +4,8 @@ import Link from "next/link";
 import RefreshButton from "./RefreshButton";
 import ThemeToggle from "./ThemeToggle";
 
+const CLIENT_NAME = "Tribal Music Group";
+
 const links = [
   { href: "/videos", label: "Trending Videos" },
   { href: "/creators", label: "Creators" },
@@ -104,6 +106,12 @@ export default function NavClient({
         </div>
 
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
+          <span className="nav-client-badge" style={{
+            fontSize: 11, color: "var(--text-faint)", whiteSpace: "nowrap",
+            padding: "4px 10px", borderRadius: 12, border: "1px solid var(--border)",
+          }}>
+            {CLIENT_NAME}
+          </span>
           <button
             onClick={() => setInsightOpen(true)}
             className="ai-insight-btn"
