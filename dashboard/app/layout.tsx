@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import Nav from "@/components/Nav";
+import MinimalNav from "@/components/MinimalNav";
 
 export const metadata = {
   title: "Chroma",
@@ -17,6 +18,7 @@ export default function RootLayout({
 }) {
   const cookieStore = cookies();
   const theme = cookieStore.get("chroma-theme")?.value === "dark" ? "dark" : "light";
+  const isLoggedIn = cookieStore.get("chroma-session")?.value === "true";
 
   return (
     <html lang="en" data-theme={theme} suppressHydrationWarning>
@@ -113,7 +115,6 @@ export default function RootLayout({
 
           ::selection { background: var(--spectrum-2); color: #fff; }
 
-          /* --- Responsive nav --- */
           .nav-hamburger { display: none; }
           @media (max-width: 780px) {
             .nav-last-collected { display: none !important; }
@@ -129,7 +130,7 @@ export default function RootLayout({
             .nav-brand-text { display: none !important; }
           }
         `}</style>
-        <Nav />
+        {isLoggedIn ? <Nav /> : <MinimalNav />}
         {children}
       </body>
     </html>
