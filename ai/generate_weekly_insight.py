@@ -44,7 +44,6 @@ def gather_week_data():
     ]
     top_original = sorted(original_videos, key=lambda v: v["_velocity"], reverse=True)[:8]
 
-    # Sounds by unique creator spread — the real "catching it early" signal
     sound_map = {}
     for v in videos:
         s = v.get("sounds")
@@ -97,34 +96,61 @@ def gather_week_data():
     }
 
 
+EMPTY_REPORT = {
+    "headline": "Not enough data yet",
+    "fastest_moving": "Not enough data collected yet this week to generate a meaningful report. Check back after a few more collection runs.",
+    "producers": [],
+    "spreading_sounds": [],
+    "recommendation": "",
+}
+
+
 def generate_report(data):
     if data["total_videos_tracked"] == 0:
-        return "Not enough data collected yet this week to generate a meaningful report. Check back after a few more collection runs."
+        return EMPTY_REPORT
 
     prompt = f"""You are an A&R analyst producing a weekly brief for Tribal Music Group, covering the phonk scene on TikTok.
 
 Context on what this data means:
-- "likes_per_hour" measures how fast a video is accelerating right now, not just its total size — a smaller video with high likes_per_hour is often a stronger early signal than an older video with more total likes.
-- "is_original_sound" / "top_original_unreleased_candidates" are videos using a sound the creator made themselves, filtered to exclude common edit/remix patterns (slowed, sped up, reverb, etc). These are the closest thing to genuinely unreleased, unsigned work — the highest-value scouting targets.
-- "top_spreading_sounds" ranks by how many DIFFERENT creators are using a sound, not just view count — a sound spreading across many accounts is an early-movement signal, distinct from one video simply going viral.
+- "likes_per_hour" measures how fast a video is accelerating right now — a smaller video with high likes_per_hour is often a stronger early signal than an older video with more total likes.
+- "top_original_unreleased_candidates" are videos using a sound the creator made themselves, filtered to exclude common edit/remix patterns. These are the closest thing to genuinely unreleased, unsigned work.
+- "top_spreading_sounds" ranks by how many DIFFERENT creators are using a sound — a sound spreading across many accounts is an early-movement signal.
 
 Data from the last 7 days:
 {json.dumps(data, indent=2, default=str)}
 
-Write a concise, direct weekly brief for a label owner. Structure it as:
-1. **Fastest-moving content this week** — 2-3 sentences on what's accelerating, referencing specific creators/sounds by name.
-2. **Producers worth a direct listen** — from top_original_unreleased_candidates specifically, name 2-4 concrete creators to check out and why, since these are unreleased/unsigned candidates.
-3. **Sounds gaining real spread** — from top_spreading_sounds, flag anything moving across multiple creators, which often precedes a track breaking wider.
-4. **One clear recommendation** — the single most actionable thing to do this week based on this data.
+Respond with ONLY valid JSON (no markdown, no code fences, no commentary outside the JSON) matching exactly this shape:
 
-Keep it under 400 words. Be specific and concrete — reference actual names and numbers from the data, not generic observations. No filler, no hedging, write like someone who actually looked at the data and has an opinion."""
+{{
+  "headline": "one short punchy sentence summarizing the week's single biggest signal",
+  "fastest_moving": "2-4 sentences on what's accelerating this week, naming specific creators/sounds and numbers",
+  "producers": [
+    {{"creator": "username", "note": "1-2 sentences on why they're worth a direct listen"}}
+  ],
+  "spreading_sounds": [
+    {{"sound": "sound name", "note": "1 sentence on the spread signal, e.g. creator count"}}
+  ],
+  "recommendation": "1-3 sentences — the single most actionable thing to do this week"
+}}
+
+Include 2-4 items in "producers" and up to 4 in "spreading_sounds", only the genuinely notable ones. Be specific and concrete, reference actual names and numbers. No filler, no hedging. Valid JSON only."""
 
     msg = claude.messages.create(
         model="claude-sonnet-5",
         max_tokens=1200,
         messages=[{"role": "user", "content": prompt}],
     )
-    return msg.content[0].text
+    raw = msg.content[0].text.strip()
+    # Defensive: strip accidental code fences if the model adds them anyway
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    try:
+        return json.loads(raw)
+    except Exception as e:
+        print(f"Failed to parse model output as JSON: {e}")
+        return {**EMPTY_REPORT, "headline": "Report generation error", "fastest_moving": raw[:1000]}
 
 
 def main():
@@ -135,7 +161,7 @@ def main():
         "report_type": "weekly",
         "period_start": (date.today() - timedelta(days=7)).isoformat(),
         "period_end": date.today().isoformat(),
-        "summary": report,
+        "summary": json.dumps(report),
         "full_report": data,
     }).execute()
     print("Weekly insight generated")
