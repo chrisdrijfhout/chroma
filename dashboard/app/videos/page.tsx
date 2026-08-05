@@ -63,8 +63,8 @@ export default async function VideosPage({
   videos = videos
     .map((v: any) => ({ ...v, _velocity: velocityScore(v.like_count_snapshot ?? 0, v.published_at) }))
     .sort((a: any, b: any) => b._velocity - a._velocity);
-
-  if (!producersOnly) videos = videos.slice(0, 10);
+  // No cap here anymore — showing everything found for this range, since
+  // manually scanning past auto-filtered edits is part of the workflow.
 
   const tabStyle = (active: boolean) => ({
     padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
@@ -85,7 +85,7 @@ export default async function VideosPage({
         <div>
           <h1 style={{ fontSize: 22, marginBottom: 4, color: "var(--text)", fontWeight: 700 }}>Trending Videos</h1>
           <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
-            {producersOnly ? `${videos.length} original-sound video${videos.length !== 1 ? "s" : ""} found` : "Top 10, ranked by likes-per-hour since posting"}
+            {videos.length} video{videos.length !== 1 ? "s" : ""}, ranked by likes-per-hour since posting
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -93,7 +93,7 @@ export default async function VideosPage({
           <Link href={buildUrl({ range: "week" })} style={tabStyle(range === "week")}>This Week</Link>
           <span style={{ width: 1, background: "var(--border)", margin: "0 4px" }} />
           <Link href={producersOnly ? `/videos?range=${range}` : `/videos?range=${range}&only=producers`} style={tabStyle(producersOnly)}>
-            🎹 Producers Only
+            🎹 Original Audio
           </Link>
         </div>
       </div>
@@ -146,7 +146,7 @@ export default async function VideosPage({
 
       {videos.length === 0 && !error && (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-faint)" }}>
-          {producersOnly ? "No original videos in this range yet." : "No data collected in this range yet."}
+          {producersOnly ? "No original-audio videos in this range yet." : "No data collected in this range yet."}
         </div>
       )}
     </div>
