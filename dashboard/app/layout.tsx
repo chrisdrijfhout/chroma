@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import Nav from "@/components/Nav";
-import MinimalNav from "@/components/MinimalNav";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -153,7 +152,7 @@ export default function RootLayout({
             .nav-brand-text { display: none !important; }
           }
         `}</style>
-        {isLoggedIn ? <Nav /> : <MinimalNav />}
+        {isLoggedIn && <Nav />}
         {children}
       </body>
     </html>
