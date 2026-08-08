@@ -7,9 +7,6 @@ export const revalidate = 0;
 
 const EDIT_KEYWORDS = ["slowed", "sped up", "spdup", "sped-up", "speedup", "reverb", "nightcore", "speed up"];
 
-// Now checks caption/hashtags too, not just sound name — these marketing
-// reposts of already-released tracks almost always tag #slowed even when
-// the caption itself doesn't call it an edit outright.
 function looksLikeMarketingRepost(caption: string | null, soundName: string | null) {
   const text = `${caption ?? ""} ${soundName ?? ""}`.toLowerCase();
   return EDIT_KEYWORDS.some((kw) => text.includes(kw));
@@ -30,10 +27,11 @@ function velocityScore(likes: number, publishedAt: string | null) {
 export default async function VideosPage({
   searchParams,
 }: {
-  searchParams: { range?: string; only?: string };
+  searchParams: { range?: string; only?: string; hideReposts?: string };
 }) {
   const range = searchParams?.range === "week" ? "week" : "latest";
   const originalOnly = searchParams?.only === "producers";
+  const hideReposts = searchParams?.hideReposts === "1";
 
   let videos: any[] = [];
   let error: any = null;
@@ -44,9 +42,6 @@ export default async function VideosPage({
     sounds ( sound_name, is_original )
   `;
 
-  // Anchor to the most recent actual collection, not wall-clock "now" —
-  // if a refresh hasn't happened in a while, this still shows the real
-  // last week of data instead of silently coming up empty.
   const { data: latestRow } = await supabase
     .from("videos")
     .select("last_collected_at")
@@ -70,10 +65,9 @@ export default async function VideosPage({
     }
   }
 
-  // Applied to the DEFAULT view now, not just the opt-in tab — this is a
-  // tool for tracking new hits, not a mixed feed of organic + paid reposts.
-  videos = videos.filter((v: any) => !looksLikeMarketingRepost(v.caption, v.sounds?.sound_name));
-
+  if (hideReposts) {
+    videos = videos.filter((v: any) => !looksLikeMarketingRepost(v.caption, v.sounds?.sound_name));
+  }
   if (originalOnly) {
     videos = videos.filter((v: any) => v.sounds?.is_original === true);
   }
@@ -91,7 +85,24 @@ export default async function VideosPage({
   });
 
   const buildUrl = (params: Record<string, string>) => {
-    const sp = new URLSearchParams({ range, ...(originalOnly ? { only: "producers" } : {}), ...params });
+    const sp = new URLSearchParams({
+      range,
+      ...(originalOnly ? { only: "producers" } : {}),
+      ...(hideReposts ? { hideReposts: "1" } : {}),
+      ...params,
+    });
+    return `/videos?${sp.toString()}`;
+  };
+
+  const toggleHideReposts = () => {
+    const sp = new URLSearchParams({ range, ...(originalOnly ? { only: "producers" } : {}) });
+    if (!hideReposts) sp.set("hideReposts", "1");
+    return `/videos?${sp.toString()}`;
+  };
+
+  const toggleOriginalOnly = () => {
+    const sp = new URLSearchParams({ range, ...(hideReposts ? { hideReposts: "1" } : {}) });
+    if (!originalOnly) sp.set("only", "producers");
     return `/videos?${sp.toString()}`;
   };
 
@@ -101,15 +112,18 @@ export default async function VideosPage({
         <div>
           <h1 style={{ fontSize: 22, marginBottom: 4, color: "var(--text)", fontWeight: 700 }}>Trending Videos</h1>
           <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
-            {videos.length} video{videos.length !== 1 ? "s" : ""} · marketing reposts of released tracks filtered out
+            {videos.length} video{videos.length !== 1 ? "s" : ""}, ranked by likes-per-hour since posting
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link href={buildUrl({ range: "latest" })} style={tabStyle(range === "latest")}>Just In</Link>
           <Link href={buildUrl({ range: "week" })} style={tabStyle(range === "week")}>This Week</Link>
           <span style={{ width: 1, background: "var(--border)", margin: "0 4px" }} />
-          <Link href={originalOnly ? `/videos?range=${range}` : `/videos?range=${range}&only=producers`} style={tabStyle(originalOnly)}>
+          <Link href={toggleOriginalOnly()} style={tabStyle(originalOnly)}>
             🎹 Original Audio
+          </Link>
+          <Link href={toggleHideReposts()} style={tabStyle(hideReposts)}>
+            🚫 Hide Reposts
           </Link>
         </div>
       </div>
@@ -162,7 +176,7 @@ export default async function VideosPage({
 
       {videos.length === 0 && !error && (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-faint)" }}>
-          {originalOnly ? "No original-audio videos in this range yet." : "No data collected in this range yet."}
+          No videos match this combination of filters yet.
         </div>
       )}
     </div>
