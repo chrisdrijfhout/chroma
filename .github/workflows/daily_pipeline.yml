@@ -2,6 +2,10 @@ name: Daily Phonk Radar Pipeline
 
 on:
   workflow_dispatch: {}
+  schedule:
+    - cron: '0 6 * * *'   # once a day, automatically — cost is hard-capped
+    # by the 24h cooldown on the dashboard's Refresh button, so this can't
+    # be pushed past once/day even if someone also clicks it manually.
 
 jobs:
   run-pipeline:
