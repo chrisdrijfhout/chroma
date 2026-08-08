@@ -45,22 +45,6 @@ export default function LoginPage() {
             animationDelay: `${i * 1}s`,
           }} />
         ))}
-        {/* A few "signal dots" that light up at different radii/angles —
-            representing sounds/creators being caught */}
-        {[
-          { top: "30%", left: "62%", delay: "0.5s" },
-          { top: "68%", left: "38%", delay: "1.8s" },
-          { top: "40%", left: "28%", delay: "2.6s" },
-          { top: "72%", left: "66%", delay: "3.4s" },
-        ].map((dot, i) => (
-          <div key={i} className="radar-dot" style={{
-            position: "absolute", top: dot.top, left: dot.left,
-            width: 8, height: 8, borderRadius: "50%",
-            background: "linear-gradient(135deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
-            animation: `dotBlip 4s ease-in-out infinite`,
-            animationDelay: dot.delay,
-          }} />
-        ))}
       </div>
 
       <form onSubmit={handleSubmit} style={{
@@ -126,11 +110,6 @@ export default function LoginPage() {
         @keyframes radarPing {
           0% { width: 40px; height: 40px; margin-left: -20px; margin-top: -20px; opacity: 0.8; }
           100% { width: 640px; height: 640px; margin-left: -320px; margin-top: -320px; opacity: 0; }
-        }
-        @keyframes dotBlip {
-          0%, 100% { opacity: 0; transform: scale(0.6); }
-          15%, 30% { opacity: 1; transform: scale(1); }
-          45% { opacity: 0; transform: scale(0.6); }
         }
       `}</style>
     </div>
