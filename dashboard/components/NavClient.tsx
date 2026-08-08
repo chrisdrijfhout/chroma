@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import RefreshButton from "./RefreshButton";
 import ThemeToggle from "./ThemeToggle";
+import LogoutButton from "./LogoutButton";
 
 const links = [
   { href: "/videos", label: "Trending Videos" },
@@ -138,6 +139,7 @@ export default function NavClient({
           <div style={{ width: 1, height: 20, background: "var(--border)", margin: "0 2px" }} />
 
           <ThemeToggle initialTheme={theme} />
+          <LogoutButton />
 
           <button
             className="nav-hamburger"
