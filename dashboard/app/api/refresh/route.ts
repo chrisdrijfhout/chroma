@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-// Triggers the Daily Phonk Radar Pipeline workflow via GitHub's API.
-// Requires GITHUB_TOKEN (a Personal Access Token with "Actions: write"
-// permission) set as a server-side env var in Vercel — NOT prefixed with
-// NEXT_PUBLIC_, so it's never exposed to the browser.
 const OWNER = "chrisdrijfhout";
 const REPO = "chroma";
 const WORKFLOW_FILE = "daily_pipeline.yml";
@@ -30,6 +27,22 @@ export async function POST() {
   if (!res.ok) {
     const text = await res.text();
     return NextResponse.json({ error: text }, { status: res.status });
+  }
+
+  // Record the trigger on the SERVER, immediately — this is what makes the
+  // cooldown survive a page reload. A client-side-only "I just clicked
+  // this" memory gets wiped on refresh; this doesn't, since any page load
+  // from here on reads this real timestamp from Supabase.
+  try {
+    const supabaseAdmin = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!
+    );
+    await supabaseAdmin.from("refresh_triggers").insert({});
+  } catch (e) {
+    // Don't fail the whole request if this logging insert fails —
+    // the actual pipeline trigger above already succeeded.
+    console.error("Failed to record refresh trigger:", e);
   }
 
   return NextResponse.json({ started: true });

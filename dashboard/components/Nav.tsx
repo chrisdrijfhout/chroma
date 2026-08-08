@@ -21,14 +21,28 @@ export default async function Nav() {
   const cookieStore = cookies();
   const theme = cookieStore.get("chroma-theme")?.value === "dark" ? "dark" : "light";
 
-  const { data: latest } = await supabase
+  const { data: latestVideo } = await supabase
     .from("videos")
     .select("last_collected_at")
     .order("last_collected_at", { ascending: false })
     .limit(1)
     .single();
 
-  const lastRunAt = latest?.last_collected_at ?? null;
+  const { data: latestTrigger } = await supabase
+    .from("refresh_triggers")
+    .select("triggered_at")
+    .order("triggered_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  // Cooldown is based on whichever is more recent: real completed data,
+  // or a refresh that was triggered but hasn't finished yet. This makes
+  // it correct even on a fresh page load, not just within one browser tab.
+  const dataTime = latestVideo?.last_collected_at ? new Date(latestVideo.last_collected_at).getTime() : 0;
+  const triggerTime = latestTrigger?.triggered_at ? new Date(latestTrigger.triggered_at).getTime() : 0;
+  const effectiveLastRunAt = triggerTime > dataTime
+    ? latestTrigger!.triggered_at
+    : latestVideo?.last_collected_at ?? null;
 
   const { data: insight } = await supabase
     .from("insights")
@@ -40,9 +54,9 @@ export default async function Nav() {
 
   return (
     <NavClient
-      lastCollectedText={formatRelativeTime(lastRunAt)}
+      lastCollectedText={formatRelativeTime(latestVideo?.last_collected_at ?? null)}
       theme={theme}
-      lastRunAt={lastRunAt}
+      lastRunAt={effectiveLastRunAt}
       insightSummary={insight?.summary ?? null}
       insightPeriod={insight ? `${insight.period_start} → ${insight.period_end}` : null}
     />

@@ -6,21 +6,18 @@ const COOLDOWN_MS = 60 * 60 * 1000;
 export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null }) {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [remaining, setRemaining] = useState<number | null>(null);
-  const [manualTriggerAt, setManualTriggerAt] = useState<number | null>(null);
 
   useEffect(() => {
     const tick = () => {
-      const serverTime = lastRunAt ? new Date(lastRunAt).getTime() : 0;
-      const effectiveStart = Math.max(serverTime, manualTriggerAt ?? 0);
-      if (!effectiveStart) { setRemaining(null); return; }
-      const elapsed = Date.now() - effectiveStart;
+      if (!lastRunAt) { setRemaining(null); return; }
+      const elapsed = Date.now() - new Date(lastRunAt).getTime();
       const left = COOLDOWN_MS - elapsed;
       setRemaining(left > 0 ? left : 0);
     };
     tick();
     const interval = setInterval(tick, 15_000);
     return () => clearInterval(interval);
-  }, [lastRunAt, manualTriggerAt]);
+  }, [lastRunAt]);
 
   const onCooldown = remaining !== null && remaining > 0;
 
@@ -30,9 +27,12 @@ export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null 
     try {
       const res = await fetch("/api/refresh", { method: "POST" });
       if (!res.ok) throw new Error("failed");
-      setManualTriggerAt(Date.now());
       setState("done");
       setTimeout(() => setState("idle"), 4000);
+      // No need to manage cooldown state locally anymore — the server
+      // now records the trigger immediately (see /api/refresh), so the
+      // NEXT page load or nav re-fetch will already reflect it correctly,
+      // even after a full page reload.
     } catch {
       setState("error");
       setTimeout(() => setState("idle"), 4000);
@@ -55,7 +55,7 @@ export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null 
     <button
       onClick={handleClick}
       disabled={state === "loading" || onCooldown}
-      title={onCooldown ? "Limited to once an hour to control cost" : undefined}
+      title={onCooldown ? "A refresh was just triggered or ran recently — limited to once an hour" : undefined}
       style={{
         fontFamily: "var(--font-display), sans-serif", fontSize: 12, fontWeight: 700,
         color: onCooldown ? "var(--text-faint)" : "#fff",
