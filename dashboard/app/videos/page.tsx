@@ -7,8 +7,11 @@ export const revalidate = 0;
 
 const EDIT_KEYWORDS = ["slowed", "sped up", "spdup", "sped-up", "speedup", "reverb", "nightcore", "speed up"];
 
-function soundNameLooksLikeEdit(soundName: string | null) {
-  const text = (soundName ?? "").toLowerCase();
+// Now checks caption/hashtags too, not just sound name — these marketing
+// reposts of already-released tracks almost always tag #slowed even when
+// the caption itself doesn't call it an edit outright.
+function looksLikeMarketingRepost(caption: string | null, soundName: string | null) {
+  const text = `${caption ?? ""} ${soundName ?? ""}`.toLowerCase();
   return EDIT_KEYWORDS.some((kw) => text.includes(kw));
 }
 
@@ -30,7 +33,7 @@ export default async function VideosPage({
   searchParams: { range?: string; only?: string };
 }) {
   const range = searchParams?.range === "week" ? "week" : "latest";
-  const producersOnly = searchParams?.only === "producers";
+  const originalOnly = searchParams?.only === "producers";
 
   let videos: any[] = [];
   let error: any = null;
@@ -41,30 +44,43 @@ export default async function VideosPage({
     sounds ( sound_name, is_original )
   `;
 
-  if (range === "week") {
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const result = await supabase.from("videos").select(videoSelect).gte("last_collected_at", sevenDaysAgo).limit(300);
-    videos = result.data ?? [];
-    error = result.error;
-  } else {
-    const { data: latest } = await supabase.from("videos").select("last_collected_at").order("last_collected_at", { ascending: false }).limit(1).single();
-    if (latest?.last_collected_at) {
-      const cutoff = new Date(new Date(latest.last_collected_at).getTime() - 60 * 60 * 1000).toISOString();
+  // Anchor to the most recent actual collection, not wall-clock "now" —
+  // if a refresh hasn't happened in a while, this still shows the real
+  // last week of data instead of silently coming up empty.
+  const { data: latestRow } = await supabase
+    .from("videos")
+    .select("last_collected_at")
+    .order("last_collected_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  const anchor = latestRow?.last_collected_at ? new Date(latestRow.last_collected_at) : null;
+
+  if (anchor) {
+    if (range === "week") {
+      const sevenDaysBeforeAnchor = new Date(anchor.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const result = await supabase.from("videos").select(videoSelect).gte("last_collected_at", sevenDaysBeforeAnchor).limit(300);
+      videos = result.data ?? [];
+      error = result.error;
+    } else {
+      const cutoff = new Date(anchor.getTime() - 60 * 60 * 1000).toISOString();
       const result = await supabase.from("videos").select(videoSelect).gte("last_collected_at", cutoff).limit(300);
       videos = result.data ?? [];
       error = result.error;
     }
   }
 
-  if (producersOnly) {
-    videos = videos.filter((v: any) => v.sounds?.is_original === true && !soundNameLooksLikeEdit(v.sounds?.sound_name));
+  // Applied to the DEFAULT view now, not just the opt-in tab — this is a
+  // tool for tracking new hits, not a mixed feed of organic + paid reposts.
+  videos = videos.filter((v: any) => !looksLikeMarketingRepost(v.caption, v.sounds?.sound_name));
+
+  if (originalOnly) {
+    videos = videos.filter((v: any) => v.sounds?.is_original === true);
   }
 
   videos = videos
     .map((v: any) => ({ ...v, _velocity: velocityScore(v.like_count_snapshot ?? 0, v.published_at) }))
     .sort((a: any, b: any) => b._velocity - a._velocity);
-  // No cap here anymore — showing everything found for this range, since
-  // manually scanning past auto-filtered edits is part of the workflow.
 
   const tabStyle = (active: boolean) => ({
     padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
@@ -75,7 +91,7 @@ export default async function VideosPage({
   });
 
   const buildUrl = (params: Record<string, string>) => {
-    const sp = new URLSearchParams({ range, ...(producersOnly ? { only: "producers" } : {}), ...params });
+    const sp = new URLSearchParams({ range, ...(originalOnly ? { only: "producers" } : {}), ...params });
     return `/videos?${sp.toString()}`;
   };
 
@@ -85,14 +101,14 @@ export default async function VideosPage({
         <div>
           <h1 style={{ fontSize: 22, marginBottom: 4, color: "var(--text)", fontWeight: 700 }}>Trending Videos</h1>
           <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
-            {videos.length} video{videos.length !== 1 ? "s" : ""}, ranked by likes-per-hour since posting
+            {videos.length} video{videos.length !== 1 ? "s" : ""} · marketing reposts of released tracks filtered out
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link href={buildUrl({ range: "latest" })} style={tabStyle(range === "latest")}>Just In</Link>
           <Link href={buildUrl({ range: "week" })} style={tabStyle(range === "week")}>This Week</Link>
           <span style={{ width: 1, background: "var(--border)", margin: "0 4px" }} />
-          <Link href={producersOnly ? `/videos?range=${range}` : `/videos?range=${range}&only=producers`} style={tabStyle(producersOnly)}>
+          <Link href={originalOnly ? `/videos?range=${range}` : `/videos?range=${range}&only=producers`} style={tabStyle(originalOnly)}>
             🎹 Original Audio
           </Link>
         </div>
@@ -146,7 +162,7 @@ export default async function VideosPage({
 
       {videos.length === 0 && !error && (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-faint)" }}>
-          {producersOnly ? "No original-audio videos in this range yet." : "No data collected in this range yet."}
+          {originalOnly ? "No original-audio videos in this range yet." : "No data collected in this range yet."}
         </div>
       )}
     </div>

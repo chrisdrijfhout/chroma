@@ -11,14 +11,14 @@ export default async function SoundsPage({
 }) {
   const range = (["latest", "week", "all"].includes(searchParams?.range ?? "") ? searchParams.range : "week") as "latest" | "week" | "all";
 
+  const { data: latestRow } = await supabase
+    .from("videos").select("last_collected_at")
+    .order("last_collected_at", { ascending: false }).limit(1).single();
+  const anchor = latestRow?.last_collected_at ? new Date(latestRow.last_collected_at) : null;
+
   let since: string | null = null;
-  if (range === "week") since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  if (range === "latest") {
-    const { data: latest } = await supabase.from("videos").select("last_collected_at").order("last_collected_at", { ascending: false }).limit(1).single();
-    if (latest?.last_collected_at) {
-      since = new Date(new Date(latest.last_collected_at).getTime() - 60 * 60 * 1000).toISOString();
-    }
-  }
+  if (anchor && range === "week") since = new Date(anchor.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  if (anchor && range === "latest") since = new Date(anchor.getTime() - 60 * 60 * 1000).toISOString();
 
   const { data: sounds, error } = await supabase
     .from("sounds")
