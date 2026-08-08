@@ -12,6 +12,18 @@ function looksLikeMarketingRepost(caption: string | null, soundName: string | nu
   return EDIT_KEYWORDS.some((kw) => text.includes(kw));
 }
 
+function formatRelativeTime(iso: string | null) {
+  if (!iso) return "unknown";
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
 function formatPostedAt(iso: string | null) {
   if (!iso) return "Unknown";
   const d = new Date(iso);
@@ -37,7 +49,7 @@ export default async function VideosPage({
   let error: any = null;
 
   const videoSelect = `
-    id, caption, video_url, published_at, thumbnail_url, like_count_snapshot,
+    id, caption, video_url, published_at, thumbnail_url, like_count_snapshot, last_collected_at,
     creators ( tiktok_username ),
     sounds ( sound_name, is_original )
   `;
@@ -76,6 +88,13 @@ export default async function VideosPage({
     .map((v: any) => ({ ...v, _velocity: velocityScore(v.like_count_snapshot ?? 0, v.published_at) }))
     .sort((a: any, b: any) => b._velocity - a._velocity);
 
+  const collectionTimes = videos
+    .map((v: any) => v.last_collected_at)
+    .filter(Boolean)
+    .sort();
+  const oldestCollected = collectionTimes[0] ?? null;
+  const newestCollected = collectionTimes[collectionTimes.length - 1] ?? null;
+
   const tabStyle = (active: boolean) => ({
     padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
     textDecoration: "none", cursor: "pointer",
@@ -111,9 +130,14 @@ export default async function VideosPage({
       <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, marginBottom: 4, color: "var(--text)", fontWeight: 700 }}>Trending Videos</h1>
-          <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
+          <p style={{ color: "var(--text-dim)", fontSize: 13, marginBottom: 4 }}>
             {videos.length} video{videos.length !== 1 ? "s" : ""}, ranked by likes-per-hour since posting
           </p>
+          {oldestCollected && newestCollected && (
+            <p style={{ color: "var(--text-faint)", fontSize: 11 }}>
+              Stats collected between {formatRelativeTime(oldestCollected)} and {formatRelativeTime(newestCollected)}
+            </p>
+          )}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link href={buildUrl({ range: "latest" })} style={tabStyle(range === "latest")}>Just In</Link>
