@@ -56,6 +56,7 @@ export default function NavClient({
         <button
           onClick={() => setInsightOpen(true)}
           title="Open A&R Assistant"
+          className="ar-widget-btn"
           style={{
             position: "fixed", bottom: 24, right: 24, zIndex: 25,
             width: 56, height: 56, borderRadius: "50%", border: "none", cursor: "pointer",
@@ -181,13 +182,16 @@ export default function NavClient({
         <>
           <div onClick={() => setInsightOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 30, animation: "fadeIn 0.15s ease" }} />
           <div style={{
-            position: "fixed", top: 0, right: 0, bottom: 0, width: "min(440px, 100vw)",
-            background: "var(--bg-elevated)", borderLeft: "1px solid var(--border)",
-            zIndex: 31, overflowY: "auto", animation: "slideIn 0.25s cubic-bezier(0.16,1,0.3,1)",
+            position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+            width: "min(480px, calc(100vw - 32px))", maxHeight: "min(640px, calc(100vh - 48px))",
+            background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 18,
+            zIndex: 31, overflowY: "auto", animation: "popIn 0.2s cubic-bezier(0.16,1,0.3,1)",
+            boxShadow: "0 20px 60px -12px rgba(0,0,0,0.35)",
           }}>
             <div style={{
               position: "sticky", top: 0, background: "var(--bg-elevated)",
               padding: "20px 24px 16px", borderBottom: "1px solid var(--border)",
+              borderRadius: "18px 18px 0 0",
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
