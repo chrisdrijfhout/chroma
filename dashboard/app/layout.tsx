@@ -102,6 +102,21 @@ export default function RootLayout({
           }
           @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
           @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+          @keyframes popIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          }
+
+          .ar-widget-btn {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+          }
+          .ar-widget-btn:hover {
+            transform: scale(1.1) rotate(-4deg);
+            box-shadow: 0 8px 28px -4px rgba(139,124,246,0.65);
+          }
+          .ar-widget-btn:active {
+            transform: scale(0.96);
+          }
 
           .card-hover:nth-child(1) { animation-delay: 0.02s; }
           .card-hover:nth-child(2) { animation-delay: 0.05s; }
@@ -129,6 +144,7 @@ export default function RootLayout({
             .nav-refresh-desktop { display: none !important; }
             .ai-insight-btn-text { display: none; }
             .ai-insight-btn { padding: 7px 9px !important; }
+            .nav-client-badge { display: none !important; }
             .nav-hamburger { display: flex !important; }
             .nav-mobile-menu { display: flex !important; }
             .nav-brand-text span:last-child { display: none; }
