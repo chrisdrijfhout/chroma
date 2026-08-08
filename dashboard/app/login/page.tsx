@@ -25,17 +25,55 @@ export default function LoginPage() {
 
   return (
     <div style={{
-      minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+      minHeight: "90vh", display: "flex", alignItems: "center", justifyContent: "center",
+      padding: 24, position: "relative", overflow: "hidden",
     }}>
+      {/* Radar/scanning-pulse visual — pings expanding outward, catching
+          something before it has a name, same idea the whole product is
+          built around */}
+      <div style={{
+        position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+        width: 700, height: 700, pointerEvents: "none",
+      }}>
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="radar-ring" style={{
+            position: "absolute", top: "50%", left: "50%",
+            width: 40, height: 40, marginLeft: -20, marginTop: -20,
+            borderRadius: "50%",
+            border: "1px solid var(--spectrum-2)",
+            animation: `radarPing 4s ease-out infinite`,
+            animationDelay: `${i * 1}s`,
+          }} />
+        ))}
+        {/* A few "signal dots" that light up at different radii/angles —
+            representing sounds/creators being caught */}
+        {[
+          { top: "30%", left: "62%", delay: "0.5s" },
+          { top: "68%", left: "38%", delay: "1.8s" },
+          { top: "40%", left: "28%", delay: "2.6s" },
+          { top: "72%", left: "66%", delay: "3.4s" },
+        ].map((dot, i) => (
+          <div key={i} className="radar-dot" style={{
+            position: "absolute", top: dot.top, left: dot.left,
+            width: 8, height: 8, borderRadius: "50%",
+            background: "linear-gradient(135deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
+            animation: `dotBlip 4s ease-in-out infinite`,
+            animationDelay: dot.delay,
+          }} />
+        ))}
+      </div>
+
       <form onSubmit={handleSubmit} style={{
         width: "100%", maxWidth: 340, background: "var(--card)", border: "1px solid var(--border)",
-        borderRadius: 16, padding: 32, textAlign: "center",
+        borderRadius: 16, padding: 32, textAlign: "center", position: "relative", zIndex: 1,
+        boxShadow: "0 20px 60px -12px rgba(0,0,0,0.15)",
       }}>
         <div style={{
           width: 44, height: 44, borderRadius: 10, margin: "0 auto 16px",
           background: "linear-gradient(135deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontFamily: "var(--font-display), sans-serif", fontWeight: 800, fontSize: 20, color: "#fff",
+          boxShadow: "0 0 20px rgba(139,124,246,0.35)",
         }}>
           C
         </div>
@@ -83,6 +121,18 @@ export default function LoginPage() {
           {loading ? "Checking..." : "Enter"}
         </button>
       </form>
+
+      <style>{`
+        @keyframes radarPing {
+          0% { width: 40px; height: 40px; margin-left: -20px; margin-top: -20px; opacity: 0.8; }
+          100% { width: 640px; height: 640px; margin-left: -320px; margin-top: -320px; opacity: 0; }
+        }
+        @keyframes dotBlip {
+          0%, 100% { opacity: 0; transform: scale(0.6); }
+          15%, 30% { opacity: 1; transform: scale(1); }
+          45% { opacity: 0; transform: scale(0.6); }
+        }
+      `}</style>
     </div>
   );
 }
