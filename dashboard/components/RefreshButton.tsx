@@ -47,7 +47,7 @@ export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null 
     state === "loading" ? "Starting..." :
     state === "done" ? "Started ✓" :
     state === "error" ? "Failed — retry" :
-    onCooldown ? `Next in ${formatRemaining(remaining!)}` :
+    onCooldown ? `Next refresh in ${formatRemaining(remaining!)}` :
     "Refresh Data";
 
   return (
