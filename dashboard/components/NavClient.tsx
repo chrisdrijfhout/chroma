@@ -52,6 +52,26 @@ export default function NavClient({
 
   return (
     <>
+      {!insightOpen && (
+        <button
+          onClick={() => setInsightOpen(true)}
+          title="Open A&R Assistant"
+          style={{
+            position: "fixed", bottom: 24, right: 24, zIndex: 25,
+            width: 56, height: 56, borderRadius: "50%", border: "none", cursor: "pointer",
+            background: "linear-gradient(135deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 22, boxShadow: "0 6px 20px -4px rgba(139,124,246,0.5)",
+          }}
+        >
+          🎧
+          <span style={{
+            position: "absolute", top: 2, right: 2, width: 12, height: 12, borderRadius: "50%",
+            background: "var(--success)", border: "2px solid var(--bg)",
+          }} />
+        </button>
+      )}
+
       <nav style={{
         display: "flex", alignItems: "center", gap: 4, padding: "12px 16px",
         borderBottom: "1px solid var(--border)", background: "var(--bg)",
@@ -110,20 +130,6 @@ export default function NavClient({
             {CLIENT_NAME}
           </span>
 
-          <button
-            onClick={() => setInsightOpen(true)}
-            className="ai-insight-btn"
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              background: "var(--card)", border: "1px solid var(--border)",
-              color: "var(--text)", borderRadius: 7,
-              padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer",
-              fontFamily: "inherit", whiteSpace: "nowrap",
-            }}
-          >
-            ✨ <span className="ai-insight-btn-text">AI Brief</span>
-          </button>
-
           <div className="nav-refresh-desktop">
             <RefreshButton lastRunAt={lastRunAt} />
           </div>
@@ -181,14 +187,30 @@ export default function NavClient({
           }}>
             <div style={{
               position: "sticky", top: 0, background: "var(--bg-elevated)",
-              display: "flex", justifyContent: "space-between", alignItems: "center",
               padding: "20px 24px 16px", borderBottom: "1px solid var(--border)",
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 18 }}>✨</span>
-                <h2 style={{ fontSize: 15, margin: 0, fontFamily: "var(--font-display), sans-serif", color: "var(--text)" }}>AI Weekly Brief</h2>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                    background: "linear-gradient(135deg, var(--spectrum-1), var(--spectrum-2), var(--spectrum-3))",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17,
+                    boxShadow: "0 0 14px rgba(139,124,246,0.3)",
+                  }}>
+                    🎧
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: 15, margin: 0, fontFamily: "var(--font-display), sans-serif", color: "var(--text)", lineHeight: 1.3 }}>
+                      A&amp;R Assistant
+                    </h2>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)" }} />
+                      <span style={{ fontSize: 11, color: "var(--text-faint)" }}>Chroma&apos;s read on this week&apos;s scene</span>
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => setInsightOpen(false)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, width: 28, height: 28, cursor: "pointer", color: "var(--text-dim)", fontSize: 14, flexShrink: 0 }}>✕</button>
               </div>
-              <button onClick={() => setInsightOpen(false)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, width: 28, height: 28, cursor: "pointer", color: "var(--text-dim)", fontSize: 14 }}>✕</button>
             </div>
             <div style={{ padding: "20px 24px 32px" }}>
               {insight && insight.fastest_moving ? (
@@ -245,15 +267,16 @@ export default function NavClient({
                   )}
                   {insight.recommendation && (
                     <div style={{ background: "linear-gradient(135deg, rgba(139,124,246,0.1), rgba(108,92,231,0.05))", border: "1px solid var(--border-light)", borderRadius: 10, padding: 14 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", letterSpacing: 0.5, marginBottom: 6, textTransform: "uppercase" }}>Recommendation</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", letterSpacing: 0.5, marginBottom: 6, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 5 }}>🎯 If I Were You</div>
                       <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text)", fontWeight: 500 }}>{insight.recommendation}</div>
                     </div>
                   )}
                 </>
               ) : (
                 <div style={{ background: "var(--card)", border: "1px dashed var(--border-light)", borderRadius: 12, padding: 32, textAlign: "center", color: "var(--text-faint)" }}>
-                  <div style={{ fontSize: 13, marginBottom: 6 }}>No brief generated yet</div>
-                  <div style={{ fontSize: 12 }}>Runs automatically once a week, once there&apos;s enough trend history to summarize.</div>
+                  <div style={{ fontSize: 22, marginBottom: 8 }}>🎧</div>
+                  <div style={{ fontSize: 13, marginBottom: 6, color: "var(--text-dim)" }}>Still listening...</div>
+                  <div style={{ fontSize: 12 }}>Your first brief lands once there&apos;s enough trend history to say something real.</div>
                 </div>
               )}
             </div>

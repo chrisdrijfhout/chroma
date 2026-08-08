@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 
-const COOLDOWN_MS = 60 * 60 * 1000;
+const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours — hard cap on cost
 
 export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null }) {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
@@ -15,7 +15,7 @@ export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null 
       setRemaining(left > 0 ? left : 0);
     };
     tick();
-    const interval = setInterval(tick, 15_000);
+    const interval = setInterval(tick, 30_000);
     return () => clearInterval(interval);
   }, [lastRunAt]);
 
@@ -29,10 +29,6 @@ export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null 
       if (!res.ok) throw new Error("failed");
       setState("done");
       setTimeout(() => setState("idle"), 4000);
-      // No need to manage cooldown state locally anymore — the server
-      // now records the trigger immediately (see /api/refresh), so the
-      // NEXT page load or nav re-fetch will already reflect it correctly,
-      // even after a full page reload.
     } catch {
       setState("error");
       setTimeout(() => setState("idle"), 4000);
@@ -40,7 +36,10 @@ export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null 
   }
 
   function formatRemaining(ms: number) {
-    const mins = Math.floor(ms / (60 * 1000));
+    const totalMins = Math.floor(ms / (60 * 1000));
+    const hrs = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m`;
     return mins > 0 ? `${mins}m` : "<1m";
   }
 
@@ -55,7 +54,7 @@ export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null 
     <button
       onClick={handleClick}
       disabled={state === "loading" || onCooldown}
-      title={onCooldown ? "A refresh was just triggered or ran recently — limited to once an hour" : undefined}
+      title={onCooldown ? "Limited to once a day to control cost" : undefined}
       style={{
         fontFamily: "var(--font-display), sans-serif", fontSize: 12, fontWeight: 700,
         color: onCooldown ? "var(--text-faint)" : "#fff",
