@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import RefreshButton from "./RefreshButton";
 import ThemeToggle from "./ThemeToggle";
 
@@ -47,6 +48,7 @@ export default function NavClient({
   const [menuOpen, setMenuOpen] = useState(false);
   const [insightOpen, setInsightOpen] = useState(false);
   const insight = parseInsight(insightSummary);
+  const pathname = usePathname();
 
   return (
     <>
@@ -78,14 +80,20 @@ export default function NavClient({
         </Link>
 
         <div className="nav-links-desktop" style={{ display: "flex", gap: 2, background: "var(--card)", padding: 3, borderRadius: 8, border: "1px solid var(--border)" }}>
-          {links.map((l) => (
-            <Link key={l.href} href={l.href} className="nav-link" style={{
-              color: "var(--text-dim)", textDecoration: "none", fontSize: 13,
-              padding: "6px 12px", borderRadius: 6, fontWeight: 500, whiteSpace: "nowrap",
-            }}>
-              {l.label}
-            </Link>
-          ))}
+          {links.map((l) => {
+            const isActive = pathname === l.href;
+            return (
+              <Link key={l.href} href={l.href} className="nav-link" style={{
+                color: isActive ? "#fff" : "var(--text-dim)",
+                textDecoration: "none", fontSize: 13,
+                padding: "6px 12px", borderRadius: 6,
+                fontWeight: isActive ? 700 : 500, whiteSpace: "nowrap",
+                background: isActive ? "linear-gradient(90deg, var(--spectrum-2), var(--spectrum-3))" : "transparent",
+              }}>
+                {l.label}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="nav-last-collected" style={{
@@ -144,14 +152,19 @@ export default function NavClient({
           borderBottom: "1px solid var(--border)", background: "var(--bg)",
           position: "sticky", top: 58, zIndex: 19, gap: 4,
         }}>
-          {links.map((l) => (
-            <Link key={l.href} href={l.href} onClick={() => setMenuOpen(false)} style={{
-              color: "var(--text)", textDecoration: "none", fontSize: 14,
-              padding: "10px 12px", borderRadius: 6, fontWeight: 500, background: "var(--card)",
-            }}>
-              {l.label}
-            </Link>
-          ))}
+          {links.map((l) => {
+            const isActive = pathname === l.href;
+            return (
+              <Link key={l.href} href={l.href} onClick={() => setMenuOpen(false)} style={{
+                color: isActive ? "#fff" : "var(--text)", textDecoration: "none", fontSize: 14,
+                padding: "10px 12px", borderRadius: 6,
+                fontWeight: isActive ? 700 : 500,
+                background: isActive ? "linear-gradient(90deg, var(--spectrum-2), var(--spectrum-3))" : "var(--card)",
+              }}>
+                {l.label}
+              </Link>
+            );
+          })}
           <div style={{ padding: "10px 12px" }}>
             <RefreshButton lastRunAt={lastRunAt} />
           </div>
