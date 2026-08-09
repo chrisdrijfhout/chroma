@@ -12,7 +12,7 @@ const links = [
   { href: "/sounds", label: "Sounds" },
 ];
 
-const CLIENT_NAME = "Tribal Music Group";
+const CLIENT_NAME = "Phonk Label";
 
 type InsightData = {
   headline: string;
