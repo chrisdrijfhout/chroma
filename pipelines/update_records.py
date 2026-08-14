@@ -6,6 +6,11 @@ from supabase import create_client
 sb = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
 BUCKET = "thumbnails"
 
+# Computed ONCE, shared by every video/creator/sound touched in this run —
+# this is what makes "the latest scrape" mean exactly one run, not a
+# smeared window of several minutes.
+RUN_TIMESTAMP = datetime.now(timezone.utc).isoformat()
+
 ORIGINAL_SOUND_PATTERNS = [
     "original sound", "âm thanh gốc", "sonido original", "son original",
     "оригинальный звук", "الصوت الأصلي", "suono originale", "orijinal ses",
@@ -74,7 +79,7 @@ def upsert_creator(item):
     row = {
         "tiktok_username": username,
         "tiktok_user_id": get_field(item, "channel.id"),
-        "last_seen_at": datetime.now(timezone.utc).isoformat(),
+        "last_seen_at": RUN_TIMESTAMP,
     }
     res = sb.table("creators").upsert(row, on_conflict="tiktok_username").execute()
     return res.data[0]["id"]
@@ -90,7 +95,7 @@ def upsert_sound(item):
         "sound_name": title,
         "original_artist": get_field(item, "song.artist"),
         "is_original": looks_like_original_sound(title),
-        "last_seen_at": datetime.now(timezone.utc).isoformat(),
+        "last_seen_at": RUN_TIMESTAMP,
     }
     res = sb.table("sounds").upsert(row, on_conflict="tiktok_sound_id").execute()
     return res.data[0]["id"]
@@ -105,8 +110,6 @@ def upsert_video(item, creator_id, sound_id):
         get_oembed_thumbnail(video_url), video_id_raw
     )
 
-    now_iso = datetime.now(timezone.utc).isoformat()
-
     row = {
         "tiktok_video_id": str(video_id_raw),
         "video_url": video_url,
@@ -116,7 +119,7 @@ def upsert_video(item, creator_id, sound_id):
         "published_at": item.get("uploadedAtFormatted"),
         "thumbnail_url": thumbnail_url,
         "like_count_snapshot": item.get("likes", 0),
-        "last_collected_at": now_iso,
+        "last_collected_at": RUN_TIMESTAMP,
     }
     res = sb.table("videos").upsert(row, on_conflict="tiktok_video_id").execute()
     video_id = res.data[0]["id"]
