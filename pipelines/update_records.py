@@ -85,16 +85,37 @@ def upsert_creator(item):
     return res.data[0]["id"]
 
 
+def normalize(text):
+    return "".join(c for c in (text or "").lower() if c.isalnum())
+
+
+def artist_matches_creator(artist, item):
+    """Language-independent signal: if the sound's credited artist is
+    (roughly) the same as the video's own poster, it's almost certainly
+    a genuine self-recorded original — regardless of what language
+    TikTok's own placeholder text happened to be in."""
+    if not artist:
+        return False
+    a = normalize(artist)
+    username = normalize(get_field(item, "channel.username"))
+    name = normalize(get_field(item, "channel.name"))
+    if not a:
+        return False
+    return (username and (a in username or username in a)) or (name and (a in name or name in a))
+
+
 def upsert_sound(item):
     music_id = get_field(item, "song.id")
     if not music_id:
         return None
     title = get_field(item, "song.title")
+    artist = get_field(item, "song.artist")
+    is_original = looks_like_original_sound(title) or artist_matches_creator(artist, item)
     row = {
         "tiktok_sound_id": str(music_id),
         "sound_name": title,
-        "original_artist": get_field(item, "song.artist"),
-        "is_original": looks_like_original_sound(title),
+        "original_artist": artist,
+        "is_original": is_original,
         "last_seen_at": RUN_TIMESTAMP,
     }
     res = sb.table("sounds").upsert(row, on_conflict="tiktok_sound_id").execute()
