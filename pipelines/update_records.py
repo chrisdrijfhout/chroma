@@ -1,4 +1,4 @@
-import os, hashlib
+import os, hashlib, json
 from datetime import datetime, timezone
 import requests
 from supabase import create_client
@@ -6,14 +6,30 @@ from supabase import create_client
 sb = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
 BUCKET = "thumbnails"
 
-# TikTok's own auto-generated placeholder name for a genuinely self-recorded
-# sound, across languages — matching one of these means the sound is real
-# original audio, not a branded/edited track.
 ORIGINAL_SOUND_PATTERNS = [
     "original sound", "âm thanh gốc", "sonido original", "son original",
     "оригинальный звук", "الصوت الأصلي", "suono originale", "orijinal ses",
     "originalton", "audio originale", "original geluid", "sunet original",
 ]
+
+
+def get_field(item, dotted_path):
+    """Tries BOTH possible shapes: a literal flat key like 'channel.username'
+    (what Apify's console table view displays), and genuinely nested dict
+    access like item['channel']['username'] (what the raw API might
+    actually return). Whichever is true, this finds it."""
+    # Try flat first
+    if dotted_path in item and item[dotted_path] is not None:
+        return item[dotted_path]
+    # Try nested
+    parts = dotted_path.split(".")
+    current = item
+    for p in parts:
+        if isinstance(current, dict) and p in current:
+            current = current[p]
+        else:
+            return None
+    return current
 
 
 def looks_like_original_sound(title):
@@ -54,12 +70,10 @@ def mirror_thumbnail(image_url, video_id_raw):
 
 
 def upsert_creator(item):
-    username = item.get("channel.username") or "unknown"
+    username = get_field(item, "channel.username") or "unknown"
     row = {
         "tiktok_username": username,
-        "tiktok_user_id": item.get("channel.id"),
-        # No follower count in this actor's output — leave unset rather
-        # than guessing.
+        "tiktok_user_id": get_field(item, "channel.id"),
         "last_seen_at": datetime.now(timezone.utc).isoformat(),
     }
     res = sb.table("creators").upsert(row, on_conflict="tiktok_username").execute()
@@ -67,14 +81,14 @@ def upsert_creator(item):
 
 
 def upsert_sound(item):
-    music_id = item.get("song.id")
+    music_id = get_field(item, "song.id")
     if not music_id:
         return None
-    title = item.get("song.title")
+    title = get_field(item, "song.title")
     row = {
         "tiktok_sound_id": str(music_id),
         "sound_name": title,
-        "original_artist": item.get("song.artist"),
+        "original_artist": get_field(item, "song.artist"),
         "is_original": looks_like_original_sound(title),
         "last_seen_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -86,10 +100,7 @@ def upsert_video(item, creator_id, sound_id):
     video_url = item.get("postPage") or ""
     video_id_raw = item.get("id") or video_url
 
-    # Thumbnail: use the actor's own cover URL first (server-side fetch
-    # avoids the hotlink-block issue browsers hit), fall back to oEmbed
-    # only if that's missing.
-    raw_thumb = item.get("video.thumbnail") or item.get("video.cover")
+    raw_thumb = get_field(item, "video.thumbnail") or get_field(item, "video.cover")
     thumbnail_url = mirror_thumbnail(raw_thumb, video_id_raw) or mirror_thumbnail(
         get_oembed_thumbnail(video_url), video_id_raw
     )
@@ -121,13 +132,21 @@ def upsert_video(item, creator_id, sound_id):
 
 
 def main():
-    import json
     with open("raw_tiktok.json") as f:
         items = json.load(f)
 
     if not items:
         print("No items in raw_tiktok.json — nothing to process")
         return
+
+    # Debug: confirm the real shape of channel/song fields for the first
+    # item, so if anything's still wrong we can see exactly why.
+    first = items[0]
+    print("=== DEBUG: field resolution for first item ===")
+    print(f"channel.username resolved to: {get_field(first, 'channel.username')!r}")
+    print(f"song.id resolved to: {get_field(first, 'song.id')!r}")
+    print(f"song.title resolved to: {get_field(first, 'song.title')!r}")
+    print(f"Raw top-level keys: {list(first.keys())}")
 
     processed = 0
     failed = 0
