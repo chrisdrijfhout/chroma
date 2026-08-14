@@ -2,19 +2,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 
-const LABEL_NAME = "Tribal Music Group";
-
-function buildPitch(songName: string) {
-  const song = songName || "your track";
-  // Reworded to read as a genuine first message rather than a templated
-  // business pitch — TikTok's spam filters are aggressive toward
-  // first-contact messages that read like unsolicited "we'll pay you"
-  // offers, since that pattern matches common scam attempts on the
-  // platform. This keeps it short, personal, and saves the actual offer
-  // details for once a real conversation starts.
-  return `Hey! Love "${song}" — it's been doing really well and caught our attention at ${LABEL_NAME}. Are you open to a quick chat about it?`;
-}
-
 export default function PitchButton({
   songName,
   caption,
@@ -24,8 +11,9 @@ export default function PitchButton({
 }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [pitchText, setPitchText] = useState("");
   const [resolvedName, setResolvedName] = useState(songName);
-  const [loadingName, setLoadingName] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -34,24 +22,25 @@ export default function PitchButton({
     e.preventDefault();
     e.stopPropagation();
     setOpen(true);
-    setLoadingName(true);
+    setLoading(true);
     try {
-      const res = await fetch("/api/extract-song-name", {
+      const res = await fetch("/api/generate-pitch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ caption, fallbackName: songName }),
       });
       const data = await res.json();
       setResolvedName(data.songName || songName);
+      setPitchText(data.pitch || "");
     } catch {
-      setResolvedName(songName);
+      setPitchText("");
     } finally {
-      setLoadingName(false);
+      setLoading(false);
     }
   }
 
   function handleCopy() {
-    navigator.clipboard.writeText(buildPitch(resolvedName));
+    navigator.clipboard.writeText(pitchText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -72,39 +61,41 @@ export default function PitchButton({
           <button onClick={() => setOpen(false)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, width: 28, height: 28, cursor: "pointer", color: "var(--text-dim)", fontSize: 14 }}>✕</button>
         </div>
 
-        {loadingName && (
-          <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 8 }}>Checking caption for a track name…</div>
+        {loading ? (
+          <div style={{ fontSize: 12, color: "var(--text-faint)", padding: "20px 0", textAlign: "center" }}>
+            Writing a fresh message…
+          </div>
+        ) : (
+          <>
+            {resolvedName !== songName && (
+              <div style={{ fontSize: 11, color: "var(--success)", marginBottom: 8 }}>Found a track name in the caption: "{resolvedName}"</div>
+            )}
+            <textarea
+              key={pitchText}
+              defaultValue={pitchText}
+              rows={5}
+              style={{
+                width: "100%", boxSizing: "border-box", padding: 12, borderRadius: 8,
+                border: "1px solid var(--border-light)", background: "var(--card)", color: "var(--text)",
+                fontSize: 13, lineHeight: 1.6, fontFamily: "inherit", resize: "vertical", marginBottom: 12,
+              }}
+            />
+            <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 14 }}>
+              Freshly written each time — sending the exact same wording to many people is itself a spam signal, separate from the content.
+            </div>
+            <button
+              onClick={handleCopy}
+              style={{
+                width: "100%", padding: "10px 14px", borderRadius: 8, border: "none",
+                background: copied ? "var(--success)" : "linear-gradient(90deg, var(--spectrum-2), var(--spectrum-3))",
+                color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                fontFamily: "var(--font-display), sans-serif",
+              }}
+            >
+              {copied ? "Copied ✓" : "Copy Message"}
+            </button>
+          </>
         )}
-        {!loadingName && resolvedName !== songName && (
-          <div style={{ fontSize: 11, color: "var(--success)", marginBottom: 8 }}>Found a track name in the caption: "{resolvedName}"</div>
-        )}
-
-        <textarea
-          key={resolvedName}
-          defaultValue={buildPitch(resolvedName)}
-          rows={5}
-          style={{
-            width: "100%", boxSizing: "border-box", padding: 12, borderRadius: 8,
-            border: "1px solid var(--border-light)", background: "var(--card)", color: "var(--text)",
-            fontSize: 13, lineHeight: 1.6, fontFamily: "inherit", resize: "vertical", marginBottom: 12,
-          }}
-        />
-
-        <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 14 }}>
-          Kept short on purpose — TikTok's spam filters flag first messages that read like a sales pitch. Save advance/marketing details for once they reply.
-        </div>
-
-        <button
-          onClick={handleCopy}
-          style={{
-            width: "100%", padding: "10px 14px", borderRadius: 8, border: "none",
-            background: copied ? "var(--success)" : "linear-gradient(90deg, var(--spectrum-2), var(--spectrum-3))",
-            color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer",
-            fontFamily: "var(--font-display), sans-serif",
-          }}
-        >
-          {copied ? "Copied ✓" : "Copy Message"}
-        </button>
       </div>
     </div>
   );
