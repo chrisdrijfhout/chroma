@@ -6,11 +6,8 @@ import PitchButton from "@/components/PitchButton";
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const EDIT_KEYWORDS = ["slowed", "sped up", "spdup", "sped-up", "speedup", "reverb", "nightcore", "speed up", "song name", "name song"];
-
-function looksLikeMarketingRepost(caption: string | null, soundName: string | null) {
-  const text = `${caption ?? ""} ${soundName ?? ""}`.toLowerCase();
-  return EDIT_KEYWORDS.some((kw) => text.includes(kw));
+function looksLikeMarketingRepost(caption: string | null) {
+  return (caption ?? "").toLowerCase().includes("slowed");
 }
 
 function formatPostedAt(iso: string | null) {
@@ -40,11 +37,12 @@ function velocityScore(likes: number, publishedAt: string | null) {
 export default async function VideosPage({
   searchParams,
 }: {
-  searchParams: { range?: string; only?: string; hideReposts?: string };
+  searchParams: { range?: string; only?: string; hideReposts?: string; unreleased?: string };
 }) {
   const range = ["week", "all"].includes(searchParams?.range ?? "") ? searchParams.range : "latest";
   const originalOnly = searchParams?.only === "producers";
   const hideReposts = searchParams?.hideReposts === "1";
+  const unreleasedOnly = searchParams?.unreleased === "1";
 
   let videos: any[] = [];
   let error: any = null;
@@ -89,10 +87,13 @@ export default async function VideosPage({
   }
 
   if (hideReposts) {
-    videos = videos.filter((v: any) => !looksLikeMarketingRepost(v.caption, v.sounds?.sound_name));
+    videos = videos.filter((v: any) => !looksLikeMarketingRepost(v.caption));
   }
   if (originalOnly) {
     videos = videos.filter((v: any) => v.sounds?.is_original === true);
+  }
+  if (unreleasedOnly) {
+    videos = videos.filter((v: any) => (v.caption ?? "").toLowerCase().includes("unreleased"));
   }
 
   videos = videos
@@ -115,25 +116,33 @@ export default async function VideosPage({
     border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
   });
 
+  const currentToggles = () => ({
+    range,
+    ...(originalOnly ? { only: "producers" } : {}),
+    ...(hideReposts ? { hideReposts: "1" } : {}),
+    ...(unreleasedOnly ? { unreleased: "1" } : {}),
+  });
+
   const buildUrl = (params: Record<string, string>) => {
-    const sp = new URLSearchParams({
-      range,
-      ...(originalOnly ? { only: "producers" } : {}),
-      ...(hideReposts ? { hideReposts: "1" } : {}),
-      ...params,
-    });
+    const sp = new URLSearchParams({ ...currentToggles(), ...params });
     return `/videos?${sp.toString()}`;
   };
 
   const toggleHideReposts = () => {
-    const sp = new URLSearchParams({ range, ...(originalOnly ? { only: "producers" } : {}) });
-    if (!hideReposts) sp.set("hideReposts", "1");
+    const sp = new URLSearchParams(currentToggles());
+    if (hideReposts) sp.delete("hideReposts"); else sp.set("hideReposts", "1");
     return `/videos?${sp.toString()}`;
   };
 
   const toggleOriginalOnly = () => {
-    const sp = new URLSearchParams({ range, ...(hideReposts ? { hideReposts: "1" } : {}) });
-    if (!originalOnly) sp.set("only", "producers");
+    const sp = new URLSearchParams(currentToggles());
+    if (originalOnly) sp.delete("only"); else sp.set("only", "producers");
+    return `/videos?${sp.toString()}`;
+  };
+
+  const toggleUnreleasedOnly = () => {
+    const sp = new URLSearchParams(currentToggles());
+    if (unreleasedOnly) sp.delete("unreleased"); else sp.set("unreleased", "1");
     return `/videos?${sp.toString()}`;
   };
 
@@ -162,6 +171,7 @@ export default async function VideosPage({
           <span style={{ width: 1, background: "var(--border)", margin: "0 4px" }} />
           <Link href={toggleOriginalOnly()} style={tabStyle(originalOnly)}>🎹 Original Audio</Link>
           <Link href={toggleHideReposts()} style={tabStyle(hideReposts)}>🚫 Hide Reposts</Link>
+          <Link href={toggleUnreleasedOnly()} style={tabStyle(unreleasedOnly)}>🆕 Unreleased Only</Link>
         </div>
       </div>
 
