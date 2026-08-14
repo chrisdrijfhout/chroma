@@ -78,8 +78,11 @@ export default async function VideosPage({
       videos = result.data ?? [];
       error = result.error;
     } else {
-      const cutoff = new Date(anchor.getTime() - 60 * 60 * 1000).toISOString();
-      const result = await supabase.from("videos").select(videoSelect).gte("last_collected_at", cutoff).limit(300);
+      // All videos from one run now share the exact same timestamp
+      // (see update_records.py's RUN_TIMESTAMP), so an exact match finds
+      // precisely the latest scrape — no wide buffer that could merge in
+      // a previous run's data.
+      const result = await supabase.from("videos").select(videoSelect).eq("last_collected_at", latestRow?.last_collected_at).limit(300);
       videos = result.data ?? [];
       error = result.error;
     }
