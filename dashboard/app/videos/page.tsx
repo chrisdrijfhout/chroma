@@ -179,7 +179,7 @@ export default async function VideosPage({
                   ORIGINAL
                 </div>
               )}
-              <PitchButton songName={v.sounds?.sound_name ?? v.caption ?? "this track"} />
+              <PitchButton songName={v.sounds?.sound_name ?? v.caption ?? "this track"} caption={v.caption} />
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "24px 10px 10px", background: "linear-gradient(transparent, rgba(0,0,0,0.85))" }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>@{v.creators?.tiktok_username ?? "unknown"}</div>
               </div>
