@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import SafeImage from "@/components/SafeImage";
+import PitchButton from "@/components/PitchButton";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -10,6 +11,12 @@ const EDIT_KEYWORDS = ["slowed", "sped up", "spdup", "sped-up", "speedup", "reve
 function looksLikeMarketingRepost(caption: string | null, soundName: string | null) {
   const text = `${caption ?? ""} ${soundName ?? ""}`.toLowerCase();
   return EDIT_KEYWORDS.some((kw) => text.includes(kw));
+}
+
+function formatPostedAt(iso: string | null) {
+  if (!iso) return "Unknown";
+  const d = new Date(iso);
+  return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 function formatRelativeTime(iso: string | null) {
@@ -22,12 +29,6 @@ function formatRelativeTime(iso: string | null) {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   return `${days}d ago`;
-}
-
-function formatPostedAt(iso: string | null) {
-  if (!iso) return "Unknown";
-  const d = new Date(iso);
-  return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 function velocityScore(likes: number, publishedAt: string | null) {
@@ -88,10 +89,7 @@ export default async function VideosPage({
     .map((v: any) => ({ ...v, _velocity: velocityScore(v.like_count_snapshot ?? 0, v.published_at) }))
     .sort((a: any, b: any) => b._velocity - a._velocity);
 
-  const collectionTimes = videos
-    .map((v: any) => v.last_collected_at)
-    .filter(Boolean)
-    .sort();
+  const collectionTimes = videos.map((v: any) => v.last_collected_at).filter(Boolean).sort();
   const oldestCollected = collectionTimes[0] ?? null;
   const newestCollected = collectionTimes[collectionTimes.length - 1] ?? null;
 
@@ -135,7 +133,9 @@ export default async function VideosPage({
           </p>
           {oldestCollected && newestCollected && (
             <p style={{ color: "var(--text-faint)", fontSize: 11 }}>
-              Stats collected between {formatRelativeTime(oldestCollected)} and {formatRelativeTime(newestCollected)}
+              {oldestCollected === newestCollected
+                ? `Stats collected ${formatRelativeTime(newestCollected)}`
+                : `Stats collected between ${formatRelativeTime(oldestCollected)} and ${formatRelativeTime(newestCollected)}`}
             </p>
           )}
         </div>
@@ -143,12 +143,8 @@ export default async function VideosPage({
           <Link href={buildUrl({ range: "latest" })} style={tabStyle(range === "latest")}>Just In</Link>
           <Link href={buildUrl({ range: "week" })} style={tabStyle(range === "week")}>This Week</Link>
           <span style={{ width: 1, background: "var(--border)", margin: "0 4px" }} />
-          <Link href={toggleOriginalOnly()} style={tabStyle(originalOnly)}>
-            🎹 Original Audio
-          </Link>
-          <Link href={toggleHideReposts()} style={tabStyle(hideReposts)}>
-            🚫 Hide Reposts
-          </Link>
+          <Link href={toggleOriginalOnly()} style={tabStyle(originalOnly)}>🎹 Original Audio</Link>
+          <Link href={toggleHideReposts()} style={tabStyle(hideReposts)}>🚫 Hide Reposts</Link>
         </div>
       </div>
 
@@ -183,6 +179,7 @@ export default async function VideosPage({
                   ORIGINAL
                 </div>
               )}
+              <PitchButton songName={v.sounds?.sound_name ?? v.caption ?? "this track"} />
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "24px 10px 10px", background: "linear-gradient(transparent, rgba(0,0,0,0.85))" }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>@{v.creators?.tiktok_username ?? "unknown"}</div>
               </div>
