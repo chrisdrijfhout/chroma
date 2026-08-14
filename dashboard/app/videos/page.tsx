@@ -6,7 +6,7 @@ import PitchButton from "@/components/PitchButton";
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const EDIT_KEYWORDS = ["slowed", "sped up", "spdup", "sped-up", "speedup", "reverb", "nightcore", "speed up"];
+const EDIT_KEYWORDS = ["slowed", "sped up", "spdup", "sped-up", "speedup", "reverb", "nightcore", "speed up", "song name", "name song"];
 
 function looksLikeMarketingRepost(caption: string | null, soundName: string | null) {
   const text = `${caption ?? ""} ${soundName ?? ""}`.toLowerCase();
@@ -42,7 +42,7 @@ export default async function VideosPage({
 }: {
   searchParams: { range?: string; only?: string; hideReposts?: string };
 }) {
-  const range = searchParams?.range === "week" ? "week" : "latest";
+  const range = ["week", "all"].includes(searchParams?.range ?? "") ? searchParams.range : "latest";
   const originalOnly = searchParams?.only === "producers";
   const hideReposts = searchParams?.hideReposts === "1";
 
@@ -64,7 +64,14 @@ export default async function VideosPage({
 
   const anchor = latestRow?.last_collected_at ? new Date(latestRow.last_collected_at) : null;
 
-  if (anchor) {
+  if (range === "all") {
+    // No date filter at all — every video ever collected, capped at a
+    // generous pull limit for query performance, then narrowed to a
+    // top-N for display after scoring/sorting below.
+    const result = await supabase.from("videos").select(videoSelect).limit(1000);
+    videos = result.data ?? [];
+    error = result.error;
+  } else if (anchor) {
     if (range === "week") {
       const sevenDaysBeforeAnchor = new Date(anchor.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const result = await supabase.from("videos").select(videoSelect).gte("last_collected_at", sevenDaysBeforeAnchor).limit(300);
@@ -88,6 +95,10 @@ export default async function VideosPage({
   videos = videos
     .map((v: any) => ({ ...v, _velocity: velocityScore(v.like_count_snapshot ?? 0, v.published_at) }))
     .sort((a: any, b: any) => b._velocity - a._velocity);
+
+  if (range === "all") {
+    videos = videos.slice(0, 50);
+  }
 
   const collectionTimes = videos.map((v: any) => v.last_collected_at).filter(Boolean).sort();
   const oldestCollected = collectionTimes[0] ?? null;
@@ -129,7 +140,9 @@ export default async function VideosPage({
         <div>
           <h1 style={{ fontSize: 22, marginBottom: 4, color: "var(--text)", fontWeight: 700 }}>Trending Videos</h1>
           <p style={{ color: "var(--text-dim)", fontSize: 13, marginBottom: 4 }}>
-            {videos.length} video{videos.length !== 1 ? "s" : ""}, ranked by likes-per-hour since posting
+            {range === "all"
+              ? `Top ${videos.length} of all time, ranked by likes-per-hour since posting`
+              : `${videos.length} video${videos.length !== 1 ? "s" : ""}, ranked by likes-per-hour since posting`}
           </p>
           {oldestCollected && newestCollected && (
             <p style={{ color: "var(--text-faint)", fontSize: 11 }}>
@@ -142,6 +155,7 @@ export default async function VideosPage({
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link href={buildUrl({ range: "latest" })} style={tabStyle(range === "latest")}>Just In</Link>
           <Link href={buildUrl({ range: "week" })} style={tabStyle(range === "week")}>This Week</Link>
+          <Link href={buildUrl({ range: "all" })} style={tabStyle(range === "all")}>All Time</Link>
           <span style={{ width: 1, background: "var(--border)", margin: "0 4px" }} />
           <Link href={toggleOriginalOnly()} style={tabStyle(originalOnly)}>🎹 Original Audio</Link>
           <Link href={toggleHideReposts()} style={tabStyle(hideReposts)}>🚫 Hide Reposts</Link>
@@ -179,7 +193,7 @@ export default async function VideosPage({
                   ORIGINAL
                 </div>
               )}
-              <PitchButton songName={v.sounds?.sound_name ?? v.caption ?? "this track"} caption={v.caption} />
+              <PitchButton />
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "24px 10px 10px", background: "linear-gradient(transparent, rgba(0,0,0,0.85))" }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>@{v.creators?.tiktok_username ?? "unknown"}</div>
               </div>
