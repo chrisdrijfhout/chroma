@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 
-const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours — hard cap on cost
+const COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 hours — lower cost now with the new actor
 
 export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null }) {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
@@ -15,7 +15,7 @@ export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null 
       setRemaining(left > 0 ? left : 0);
     };
     tick();
-    const interval = setInterval(tick, 30_000);
+    const interval = setInterval(tick, 15_000);
     return () => clearInterval(interval);
   }, [lastRunAt]);
 
@@ -47,14 +47,14 @@ export default function RefreshButton({ lastRunAt }: { lastRunAt: string | null 
     state === "loading" ? "Starting..." :
     state === "done" ? "Started ✓" :
     state === "error" ? "Failed — retry" :
-    onCooldown ? `Next refresh in ${formatRemaining(remaining!)}` :
+    onCooldown ? `Next in ${formatRemaining(remaining!)}` :
     "Refresh Data";
 
   return (
     <button
       onClick={handleClick}
       disabled={state === "loading" || onCooldown}
-      title={onCooldown ? "Limited to once a day to control cost" : undefined}
+      title={onCooldown ? "Limited to once every 3 hours to control cost" : undefined}
       style={{
         fontFamily: "var(--font-display), sans-serif", fontSize: 12, fontWeight: 700,
         color: onCooldown ? "var(--text-faint)" : "#fff",
