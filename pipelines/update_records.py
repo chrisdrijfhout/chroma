@@ -11,13 +11,6 @@ BUCKET = "thumbnails"
 # smeared window of several minutes.
 RUN_TIMESTAMP = datetime.now(timezone.utc).isoformat()
 
-ORIGINAL_SOUND_PATTERNS = [
-    "original sound", "âm thanh gốc", "sonido original", "son original",
-    "оригинальный звук", "الصوت الأصلي", "suono originale", "orijinal ses",
-    "originalton", "audio originale", "original geluid", "sunet original",
-]
-
-
 def get_field(item, dotted_path):
     """Tries BOTH possible shapes: a literal flat key like 'channel.username'
     (what Apify's console table view displays), and genuinely nested dict
@@ -38,10 +31,15 @@ def get_field(item, dotted_path):
 
 
 def looks_like_original_sound(title):
+    # Simple, deliberate: just check for the word "original" anywhere in
+    # the sound's name. Catches "original sound", "sonido original", and
+    # even mixed-language variants like "som original" — since "original"
+    # itself is a common loanword TikTok keeps as-is across many
+    # languages, this generalizes better than trying to list every full
+    # phrase translation.
     if not title:
         return False
-    t = title.lower()
-    return any(p in t for p in ORIGINAL_SOUND_PATTERNS)
+    return "original" in title.lower()
 
 
 def get_oembed_thumbnail(video_url):
@@ -85,32 +83,13 @@ def upsert_creator(item):
     return res.data[0]["id"]
 
 
-def normalize(text):
-    return "".join(c for c in (text or "").lower() if c.isalnum())
-
-
-def artist_matches_creator(artist, item):
-    """Language-independent signal: if the sound's credited artist is
-    (roughly) the same as the video's own poster, it's almost certainly
-    a genuine self-recorded original — regardless of what language
-    TikTok's own placeholder text happened to be in."""
-    if not artist:
-        return False
-    a = normalize(artist)
-    username = normalize(get_field(item, "channel.username"))
-    name = normalize(get_field(item, "channel.name"))
-    if not a:
-        return False
-    return (username and (a in username or username in a)) or (name and (a in name or name in a))
-
-
 def upsert_sound(item):
     music_id = get_field(item, "song.id")
     if not music_id:
         return None
     title = get_field(item, "song.title")
     artist = get_field(item, "song.artist")
-    is_original = looks_like_original_sound(title) or artist_matches_creator(artist, item)
+    is_original = looks_like_original_sound(title)
     row = {
         "tiktok_sound_id": str(music_id),
         "sound_name": title,
