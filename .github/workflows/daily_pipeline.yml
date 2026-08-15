@@ -3,9 +3,7 @@ name: Daily Phonk Radar Pipeline
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: '0 */3 * * *'   # every 3 hours — cost is low enough with the
-    # new actor, and the dashboard's 3h cooldown means this can't be
-    # pushed more frequent than that even with manual clicks too.
+    - cron: '0 6 * * *'   # once every 24 hours
 
 jobs:
   run-pipeline:
