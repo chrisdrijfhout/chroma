@@ -99,7 +99,7 @@ export async function GET(request: Request) {
   const buffer = await renderToBuffer(DealDoc({ deal }) as any);
   const filename = `Chroma_Deal_Brief_${deal.artist_name.replace(/\s+/g, "_")}.pdf`;
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename}"`,
