@@ -1,13 +1,12 @@
 import { supabase } from "@/lib/supabaseClient";
 import AddDealButton from "@/components/AddDealButton";
+import DealStatusSelect from "@/components/DealStatusSelect";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function DealsPage() {
   const { data: deals, error } = await supabase.from("deals").select("*").order("updated_at", { ascending: false });
-  const statusColor = (s: string) => s === "Signed" ? "var(--success)" : s === "Passed" ? "var(--danger)" : "var(--accent)";
-
   return (
     <div style={{ padding: "32px 24px", maxWidth: 900, margin: "0 auto" }}>
       <div style={{ marginBottom: 12 }}>
@@ -16,6 +15,11 @@ export default async function DealsPage() {
       </div>
 
       <AddDealButton />
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <a href="/api/export-deals-csv?filter=all" style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", background: "var(--card)", border: "1px solid var(--border)", padding: "7px 14px", borderRadius: 6, textDecoration: "none" }}>📋 Export All (CSV)</a>
+        <a href="/api/export-deals-csv?filter=signed" style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", background: "var(--card)", border: "1px solid var(--border)", padding: "7px 14px", borderRadius: 6, textDecoration: "none" }}>✅ Export Signed Only (CSV)</a>
+      </div>
 
       {error && <pre style={{ color: "var(--danger)", background: "var(--card)", padding: 14, borderRadius: 8, fontSize: 12 }}>{JSON.stringify(error, null, 2)}</pre>}
 
@@ -27,7 +31,7 @@ export default async function DealsPage() {
                 <div style={{ fontSize: 15, fontWeight: 700 }}>{d.artist_name}</div>
                 <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{d.tiktok_handle} {d.instagram_handle && `· ${d.instagram_handle}`}</div>
               </div>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: statusColor(d.status), borderRadius: 12, padding: "4px 10px", whiteSpace: "nowrap" }}>{d.status}</span>
+              <DealStatusSelect dealId={d.id} initialStatus={d.status} />
             </div>
             {d.next_step && <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 10, fontStyle: "italic" }}>Next: {d.next_step}</div>}
             <div style={{ display: "flex", gap: 16, fontSize: 11, color: "var(--text-faint)", marginBottom: 12 }}>
