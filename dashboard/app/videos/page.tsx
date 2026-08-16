@@ -38,12 +38,13 @@ function velocityScore(likes: number, publishedAt: string | null) {
 export default async function VideosPage({
   searchParams,
 }: {
-  searchParams: { range?: string; only?: string; hideReposts?: string; unreleased?: string };
+  searchParams: { range?: string; only?: string; hideReposts?: string; unreleased?: string; q?: string };
 }) {
   const range = ["week", "all"].includes(searchParams?.range ?? "") ? searchParams.range : "latest";
   const originalOnly = searchParams?.only === "producers";
   const hideReposts = searchParams?.hideReposts === "1";
   const unreleasedOnly = searchParams?.unreleased === "1";
+  const q = (searchParams?.q ?? "").toLowerCase().trim();
 
   let videos: any[] = [];
   let error: any = null;
@@ -95,6 +96,13 @@ export default async function VideosPage({
   }
   if (unreleasedOnly) {
     videos = videos.filter((v: any) => (v.caption ?? "").toLowerCase().includes("unreleased"));
+  }
+  if (q) {
+    videos = videos.filter((v: any) =>
+      (v.caption ?? "").toLowerCase().includes(q) ||
+      (v.creators?.tiktok_username ?? "").toLowerCase().includes(q) ||
+      (v.sounds?.sound_name ?? "").toLowerCase().includes(q)
+    );
   }
 
   videos = videos
@@ -165,6 +173,13 @@ export default async function VideosPage({
             </p>
           )}
         </div>
+        <form style={{ display: "flex" }}>
+          <input type="hidden" name="range" value={range} />
+          <input
+            name="q" defaultValue={q} placeholder="Search creator, sound, caption…"
+            style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--card)", color: "var(--text)", fontSize: 12, fontFamily: "inherit", width: 200 }}
+          />
+        </form>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link href={buildUrl({ range: "latest" })} style={tabStyle(range === "latest")}>Just In</Link>
           <Link href={buildUrl({ range: "week" })} style={tabStyle(range === "week")}>This Week</Link>
