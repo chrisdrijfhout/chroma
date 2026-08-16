@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import SafeImage from "@/components/SafeImage";
 import PitchButton from "@/components/PitchButton";
+import MarkDealButton from "@/components/MarkDealButton";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -207,6 +208,7 @@ export default async function VideosPage({
                 </div>
               )}
               <PitchButton />
+              <MarkDealButton videoId={v.id} creatorHandle={`@${v.creators?.tiktok_username ?? "unknown"}`} videoUrl={v.video_url} />
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "24px 10px 10px", background: "linear-gradient(transparent, rgba(0,0,0,0.85))" }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>@{v.creators?.tiktok_username ?? "unknown"}</div>
               </div>
