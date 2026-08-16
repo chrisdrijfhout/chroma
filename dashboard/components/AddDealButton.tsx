@@ -18,10 +18,11 @@ export default function AddDealButton() {
     setSaving(true);
     try {
       const res = await fetch("/api/deals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unknown error");
       window.location.reload();
-    } catch {
-      alert("Failed to save.");
+    } catch (e: any) {
+      alert("Failed to save: " + e.message);
       setSaving(false);
     }
   }
