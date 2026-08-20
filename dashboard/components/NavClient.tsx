@@ -20,6 +20,8 @@ type InsightData = {
   producers: { creator: string; note: string }[];
   spreading_sounds: { sound: string; note: string }[];
   recommendation: string; week_comparison?: string; standout_day?: string;
+  outliers?: { creator: string; note: string }[];
+  producer_signals?: { creator: string; note: string }[];
 };
 function parseInsight(raw: string | null): InsightData | null {
   if (!raw) return null;
@@ -59,6 +61,28 @@ export default function NavClient({
             {insightPeriod && <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>{insightPeriod}</div>}
             {insight.headline && <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, paddingLeft: 10, borderLeft: "3px solid var(--accent)" }}>{insight.headline}</div>}
             <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14 }}>{insight.fastest_moving}</div>
+            {insight.outliers && insight.outliers.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#ff6b6b", marginBottom: 6 }}>⚡ OUTLIERS — CHECK NOW</div>
+                {insight.outliers.map((o, i) => (
+                  <div key={i} style={{ background: "rgba(255,107,107,0.08)", border: "1px solid rgba(255,107,107,0.3)", borderRadius: 8, padding: 10, marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700 }}>@{o.creator}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{o.note}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {insight.producer_signals && insight.producer_signals.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", marginBottom: 6 }}>🎹 GENUINE PRODUCER SIGNALS</div>
+                {insight.producer_signals.map((p, i) => (
+                  <div key={i} style={{ background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.3)", borderRadius: 8, padding: 10, marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700 }}>@{p.creator}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{p.note}</div>
+                  </div>
+                ))}
+              </div>
+            )}
             {insight.producers?.map((p, i) => (
               <div key={i} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: 10, marginBottom: 6 }}>
                 <div style={{ fontSize: 12, fontWeight: 700 }}>@{p.creator}</div>
