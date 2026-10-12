@@ -32,12 +32,14 @@ function velocityScore(likes: number, publishedAt: string | null) {
 export default async function VideosPage({
   searchParams,
 }: {
-  searchParams: { range?: string; only?: string; hideReposts?: string; unreleased?: string; q?: string };
+  searchParams: { range?: string; only?: string; hideReposts?: string; unreleased?: string; phonk?: string; producer?: string; q?: string };
 }) {
   const range = ["week", "all"].includes(searchParams?.range ?? "") ? searchParams.range : "latest";
   const originalOnly = searchParams?.only === "producers";
   const hideReposts = searchParams?.hideReposts === "1";
   const unreleasedOnly = searchParams?.unreleased === "1";
+  const phonkOnly = searchParams?.phonk === "1";
+  const producerOnly = searchParams?.producer === "1";
   const q = (searchParams?.q ?? "").toLowerCase().trim();
 
   let videos: any[] = [];
@@ -67,6 +69,11 @@ export default async function VideosPage({
 
   if (hideReposts) videos = videos.filter((v: any) => !looksLikeMarketingRepost(v.caption));
   if (originalOnly) videos = videos.filter((v: any) => v.sounds?.is_original === true);
+  const PHONK_KW = ["phonk", "drift phonk", "cowbell"];
+  const PRODUCER_KW = ["fl studio","flstudio","fruity loops","ableton","logic pro","cubase","serum","vst","studio one"];
+  const hasAny = (t: any, kws: string[]) => { const x = String(t ?? "").toLowerCase(); return kws.some(k => x.includes(k)); };
+  if (phonkOnly) videos = videos.filter((v: any) => hasAny(v.caption, PHONK_KW) || hasAny(v.sounds?.sound_name, PHONK_KW));
+  if (producerOnly) videos = videos.filter((v: any) => hasAny(v.caption, PRODUCER_KW));
   if (unreleasedOnly) videos = videos.filter((v: any) => (v.caption ?? "").toLowerCase().includes("unreleased"));
   if (q) {
     videos = videos.filter((v: any) =>
@@ -85,10 +92,12 @@ export default async function VideosPage({
   if (range === "all" && !q) videos = videos.slice(0, 50);
 
   const tabStyle = (active: boolean) => ({ padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, textDecoration: "none", cursor: "pointer", background: active ? "var(--accent)" : "var(--card)", color: active ? "#fff" : "var(--text-dim)", border: `1px solid ${active ? "var(--accent)" : "var(--border)"}` });
-  const currentToggles = () => ({ range, ...(originalOnly ? { only: "producers" } : {}), ...(hideReposts ? { hideReposts: "1" } : {}), ...(unreleasedOnly ? { unreleased: "1" } : {}), ...(q ? { q } : {}) });
+  const currentToggles = () => ({ range, ...(originalOnly ? { only: "producers" } : {}), ...(hideReposts ? { hideReposts: "1" } : {}), ...(unreleasedOnly ? { unreleased: "1" } : {}), ...(phonkOnly ? { phonk: "1" } : {}), ...(producerOnly ? { producer: "1" } : {}), ...(q ? { q } : {}) });
   const buildUrl = (params: Record<string, string>) => `/videos?${new URLSearchParams({ ...currentToggles(), ...params }).toString()}`;
   const toggleHideReposts = () => { const sp = new URLSearchParams(currentToggles()); if (hideReposts) sp.delete("hideReposts"); else sp.set("hideReposts", "1"); return `/videos?${sp}`; };
   const toggleOriginalOnly = () => { const sp = new URLSearchParams(currentToggles()); if (originalOnly) sp.delete("only"); else sp.set("only", "producers"); return `/videos?${sp}`; };
+  const togglePhonkOnly = () => { const sp = new URLSearchParams(currentToggles()); if (phonkOnly) sp.delete("phonk"); else sp.set("phonk", "1"); return `/videos?${sp}`; };
+  const toggleProducerOnly = () => { const sp = new URLSearchParams(currentToggles()); if (producerOnly) sp.delete("producer"); else sp.set("producer", "1"); return `/videos?${sp}`; };
   const toggleUnreleasedOnly = () => { const sp = new URLSearchParams(currentToggles()); if (unreleasedOnly) sp.delete("unreleased"); else sp.set("unreleased", "1"); return `/videos?${sp}`; };
 
   const collectionTimes = videos.map((v: any) => v.last_collected_at).filter(Boolean).sort();
@@ -116,6 +125,8 @@ export default async function VideosPage({
           <Link href={toggleOriginalOnly()} style={tabStyle(originalOnly)}>🎹 Original Audio</Link>
           <Link href={toggleHideReposts()} style={tabStyle(hideReposts)}>🚫 Hide Reposts</Link>
           <Link href={toggleUnreleasedOnly()} style={tabStyle(unreleasedOnly)}>🆕 Unreleased Only</Link>
+          <Link href={togglePhonkOnly()} style={tabStyle(phonkOnly)}>🔥 Phonk Only</Link>
+          <Link href={toggleProducerOnly()} style={tabStyle(producerOnly)}>🎚 Producer Signal</Link>
         </div>
       </div>
 
